@@ -1,11 +1,7 @@
-﻿using ClipperLib;
-using System;
+﻿using System;
 using System.Collections.Generic;
-using System.Drawing;
 using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
-using System.Xml.Linq;
+using ClipperLib;
 
 namespace DeepNestLib
 {
@@ -127,7 +123,7 @@ namespace DeepNestLib
 
             // give special treatment to line segments above this length (squared)
             var fixedTolerance = 40 * Config.curveTolerance * 40 * Config.curveTolerance;
-            int i, j, k;
+            int i, j;
 
 
             if (Config.simplify)
@@ -289,11 +285,6 @@ namespace DeepNestLib
                 }
             }
 
-            // straighten long lines
-            // a rounded rectangle would still have issues at this point, as the long sides won't line up straight
-
-            var straightened = false;
-
             for (i = 0; i < offset.length; i++)
             {
                 var p1 = offset[i];
@@ -327,7 +318,6 @@ namespace DeepNestLib
                         p1.y = s1.y;
                         p2.x = s2.x;
                         p2.y = s2.y;
-                        straightened = true;
                     }
                 }
             }
@@ -1026,8 +1016,8 @@ namespace DeepNestLib
         public int mutationRate = 10;
         public int populationSize = 10;
         public int rotations = 4;
-        public double spacing = 10;
-        public double sheetSpacing = 0;
+        public double spacing = 100;
+        public double sheetSpacing = 500;
         public bool useHoles = false;
         public double timeRatio = 0.5;
         public bool mergeLines = false;
