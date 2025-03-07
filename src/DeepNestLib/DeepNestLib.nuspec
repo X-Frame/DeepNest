@@ -2,7 +2,7 @@
 <package>
 	<metadata>
 		<id>DeepNest</id>
-		<version>1.0.1</version>
+		<version>1.0.2</version>
 		<title>DeepNestLib</title>
 		<authors>Rafael del Molino</authors>
 		<requireLicenseAcceptance>true</requireLicenseAcceptance>
