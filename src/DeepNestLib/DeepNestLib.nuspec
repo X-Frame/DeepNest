@@ -1,0 +1,32 @@
+<?xml version="1.0" encoding="utf-8"?>
+<package>
+	<metadata>
+		<id>DeepNest</id>
+		<version>1.0.1</version>
+		<title>DeepNestLib</title>
+		<authors>Rafael del Molino</authors>
+		<requireLicenseAcceptance>true</requireLicenseAcceptance>
+		<license type="expression">MIT</license>
+		<!-- <icon>icon.png</icon> -->
+		<projectUrl>https://github.com/RafaeldelM/nesting</projectUrl>
+		<description>DeepNest for Rhino</description>
+		<releaseNotes>Initial</releaseNotes>
+		<copyright>2025</copyright>
+		<tags>DeepNest</tags>
+		<dependencies>
+			<group targetFramework=".NETFramework4.8">
+				<!-- List your dependencies here if any -->
+				<!-- Example: <dependency id="SomeLibrary" version="1.0.0" /> -->
+			</group>
+		</dependencies>
+	</metadata>
+	<files>
+		<file src="bin\Release\DeepNestLib.dll" target="lib\net48" />
+		<file src="bin\Release\clipper_library.dll" target="lib\net48" />
+		<file src="bin\Release\MinkowskiWrapper.dll" target="lib\net48" />
+
+		<file src="bin\Release\minkowski.dll" target="build" />
+		
+		<file src="..\MinkowskiWrapper\build\DeepNest.targets" target="build" />
+	</files>
+</package>

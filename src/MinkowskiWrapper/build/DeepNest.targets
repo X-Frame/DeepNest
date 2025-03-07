@@ -1,0 +1,9 @@
+<Project>
+	<ItemGroup>
+		<NativeLibs Include="$(MSBuildThisFileDirectory)\minkowski.dll" />
+		<None Include="@(NativeLibs)">
+			<Link>%(FileName)%(Extension)</Link>
+			<CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+		</None>
+	</ItemGroup>
+</Project>
