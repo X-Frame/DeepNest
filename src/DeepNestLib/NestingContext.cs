@@ -34,6 +34,16 @@ namespace DeepNestLib
             Iterations = 0;
         }
 
+        public void StartNest(SvgNestConfig config)
+        {
+            current = null;
+            Nest = new SvgNest(config);
+            Background.cacheProcess = new Dictionary<string, NFP[]>();
+            Background.window = new windowUnk();
+            Background.callCounter = 0;
+            Iterations = 0;
+        }
+
         bool offsetTreePhase = true;
         public void NestIterate()
         {
