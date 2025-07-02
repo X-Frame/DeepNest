@@ -2,7 +2,6 @@
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
-using System.Text;
 using System.Threading.Tasks;
 using System.Xml.Linq;
 
@@ -24,10 +23,13 @@ namespace DeepNestLib
 
         public int Iterations { get; private set; } = 0;
 
+        private SvgNestConfig _config;
+
         public void StartNest()
         {
             current = null;
             Nest = new SvgNest();
+            _config = new SvgNestConfig();
             Background.cacheProcess = new Dictionary<string, NFP[]>();
             Background.window = new windowUnk();
             Background.callCounter = 0;
@@ -37,6 +39,7 @@ namespace DeepNestLib
         public void StartNest(SvgNestConfig config)
         {
             current = null;
+            _config = config;
             Nest = new SvgNest(config);
             Background.cacheProcess = new Dictionary<string, NFP[]>();
             Background.window = new windowUnk();
@@ -188,7 +191,7 @@ namespace DeepNestLib
             PlacedPartsCount = 0;
             List<NFP> placed = new List<NFP>();
             foreach (var item in Polygons)
-            {                
+            {
                 item.sheet = null;
             }
             List<int> sheetsIds = new List<int>();
@@ -211,7 +214,7 @@ namespace DeepNestLib
                         PlacedPartsCount++;
                         var poly = Polygons.First(z => z.id == ssitem.id);
                         totalPartsArea += GeometryUtil.polygonArea(poly);
-                        placed.Add(poly);                        
+                        placed.Add(poly);
                         poly.sheet = sheet;
                         poly.x = ssitem.x + sheet.x;
                         poly.y = ssitem.y + sheet.y;
@@ -232,11 +235,11 @@ namespace DeepNestLib
             }
         }
 
-        public void ReorderSheets()
+        public void ReorderSheets(int sheetSpacing = 500)
         {
             double x = 0;
             double y = 0;
-            int gap = 10;
+            int gap = sheetSpacing;
             for (int i = 0; i < Sheets.Count; i++)
             {
                 Sheets[i].x = x;
@@ -303,7 +306,7 @@ namespace DeepNestLib
                         ImportFromRawDetail(SvgParser.LoadSvg(item.FullName), src);
                     }
                 }
-                catch (Exception ex)
+                catch (Exception)
                 {
                     Console.WriteLine("Error loading " + item.FullName + ". skip");
                 }
