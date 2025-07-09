@@ -11,7 +11,7 @@
         public int PopulationSize { get; set; } = 10;
         public int Rotations { get; set; } = 4;
         public double Spacing { get; set; } = 100;
-        public double SheetSpacing { get; set; } = 500;
+        public int SheetSpacing { get; set; } = 500;
         public bool UseHoles { get; set; } = false;
         public double TimeRatio { get; set; } = 0.5;
         public bool MergeLines { get; set; } = false;
