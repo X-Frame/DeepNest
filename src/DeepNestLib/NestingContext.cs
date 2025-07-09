@@ -9,10 +9,10 @@ namespace DeepNestLib
 {
     public class NestingContext
     {
+        public NestingContext() { _config = new SvgNestConfig(); }
+        public NestingContext(SvgNestConfig config) { _config = config; }
         public List<NFP> Polygons { get; private set; } = new List<NFP>();
         public List<NFP> Sheets { get; private set; } = new List<NFP>();
-
-
         public double MaterialUtilization { get; private set; } = 0;
         public int PlacedPartsCount { get; private set; } = 0;
 
@@ -28,19 +28,7 @@ namespace DeepNestLib
         public void StartNest()
         {
             current = null;
-            Nest = new SvgNest();
-            _config = new SvgNestConfig();
-            Background.cacheProcess = new Dictionary<string, NFP[]>();
-            Background.window = new windowUnk();
-            Background.callCounter = 0;
-            Iterations = 0;
-        }
-
-        public void StartNest(SvgNestConfig config)
-        {
-            current = null;
-            _config = config;
-            Nest = new SvgNest(config);
+            Nest = new SvgNest(_config);
             Background.cacheProcess = new Dictionary<string, NFP[]>();
             Background.window = new windowUnk();
             Background.callCounter = 0;
@@ -235,11 +223,11 @@ namespace DeepNestLib
             }
         }
 
-        public void ReorderSheets(int sheetSpacing = 500)
+        public void ReorderSheets()
         {
             double x = 0;
             double y = 0;
-            int gap = sheetSpacing;
+            int gap = _config.SheetSpacing;
             for (int i = 0; i < Sheets.Count; i++)
             {
                 Sheets[i].x = x;
