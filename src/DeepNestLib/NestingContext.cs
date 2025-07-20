@@ -123,7 +123,7 @@ namespace DeepNestLib
 
                 foreach (var item in lsheets)
                 {
-                    SvgNest.offsetTree(item, -0.5 * SvgNest.Config.Spacing, SvgNest.Config, true);
+                    SvgNest.offsetTree(item, SvgNest.Config.SheetEdgeOffset, SvgNest.Config, true);
                 }
             }
 
