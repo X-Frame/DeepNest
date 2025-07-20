@@ -11,6 +11,10 @@
         public int PopulationSize { get; set; } = 10;
         public int Rotations { get; set; } = 4;
         public double Spacing { get; set; } = 100;
+        /// <summary>
+        /// How close parts can be nested to the edge of the sheet in mm.
+        /// </summary>
+        public double SheetEdgeOffset { get; set; } = 1;
         public int SheetSpacing { get; set; } = 500;
         public bool UseHoles { get; set; } = false;
         public double TimeRatio { get; set; } = 0.5;
