@@ -1,4 +1,5 @@
 ﻿using System;
+using System.Collections.Concurrent;
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
@@ -29,10 +30,11 @@ namespace DeepNestLib
         {
             current = null;
             Nest = new SvgNest(_config);
-            Background.cacheProcess = new Dictionary<string, NFP[]>();
+            Background.cacheProcess = new ConcurrentDictionary<string, NFP[]>();
             Background.window = new windowUnk();
             Background.callCounter = 0;
             Iterations = 0;
+            Background.UseParallel = _config.UseParallel;
         }
 
         bool offsetTreePhase = true;

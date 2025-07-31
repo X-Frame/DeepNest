@@ -1,11 +1,14 @@
-﻿using ClipperLib;
-using Minkowski;
-using System;
+﻿using System;
+using System.Buffers;
+using System.Collections.Concurrent;
 using System.Collections.Generic;
 using System.Diagnostics;
 using System.Drawing;
 using System.Linq;
+using System.Threading;
 using System.Threading.Tasks;
+using ClipperLib;
+using Minkowski;
 
 namespace DeepNestLib
 {
@@ -13,6 +16,8 @@ namespace DeepNestLib
     {
 
         public static bool EnableCaches = true;
+
+        public static bool UseParallel { get; set; }
 
         public static NFP shiftPolygon(NFP p, PlacementItem shift)
         {
@@ -240,14 +245,14 @@ namespace DeepNestLib
 
         public static int callCounter = 0;
 
-        public static Dictionary<string, NFP[]> cacheProcess = new Dictionary<string, NFP[]>();
+        public static ConcurrentDictionary<string, NFP[]> cacheProcess = new ConcurrentDictionary<string, NFP[]>();
         public static NFP[] Process2(NFP A, NFP B, int type)
         {
             var key = A.source + ";" + B.source + ";" + A.rotation + ";" + B.rotation;
-            bool cacheAllow = type != 1;            
-            if (cacheProcess.ContainsKey(key) && cacheAllow)
+            bool cacheAllow = type != 1;
+            if (cacheAllow && cacheProcess.TryGetValue(key, out var cachedValue))
             {
-                return cacheProcess[key];
+                return cachedValue;
             }
 
             Stopwatch swg = Stopwatch.StartNew();
@@ -268,9 +273,7 @@ namespace DeepNestLib
                 target.Add(item.y);
             }
 
-
             List<double> hdat = new List<double>();
-
             foreach (var item in A.children)
             {
                 foreach (var pitem in item.Points)
@@ -294,72 +297,82 @@ namespace DeepNestLib
             int[] sizes1 = new int[sizes[0]];
             int[] sizes2 = new int[sizes[1]];
             MinkowskiWrapper.getSizes2(sizes1, sizes2);
-            double[] dat1 = new double[sizes1.Sum()];
-            double[] hdat1 = new double[sizes2.Sum()];
 
-            MinkowskiWrapper.getResults(dat1, hdat1);
+            // Rent arrays from the pool
+            double[] dat1 = ArrayPool<double>.Shared.Rent(sizes1.Sum());
+            double[] hdat1 = ArrayPool<double>.Shared.Rent(sizes2.Sum());
 
-            if (sizes1.Count() > 1)
+            NFP ret; // Declare here to be accessible for the return statement
+
+            try
             {
-                throw new ArgumentException("sizes1 cnt >1");
-            }
+                // Get the results into the rented arrays
+                MinkowskiWrapper.getResults(dat1, hdat1);
 
-
-            //convert back to answer here
-            bool isa = true;
-            List<PointF> Apts = new List<PointF>();
-
-
-
-            List<List<double>> holesval = new List<List<double>>();
-            bool holes = false;
-
-            for (int i = 0; i < dat1.Length; i += 2)
-            {
-                var x1 = (float)dat1[i];
-                var y1 = (float)dat1[i + 1];
-                Apts.Add(new PointF(x1, y1));
-            }
-
-            int index = 0;
-            for (int i = 0; i < sizes2.Length; i++)
-            {
-                holesval.Add(new List<double>());
-                for (int j = 0; j < sizes2[i]; j++)
+                // All logic using the rented arrays must be inside this 'try' block.
+                if (sizes1.Count() > 1)
                 {
-                    holesval.Last().Add(hdat1[index]);
-                    index++;
+                    throw new ArgumentException("sizes1 cnt >1");
+                }
+
+                List<PointF> Apts = new List<PointF>();
+                for (int i = 0; i < dat1.Length; i += 2)
+                {
+                    var x1 = (float)dat1[i];
+                    var y1 = (float)dat1[i + 1];
+                    Apts.Add(new PointF(x1, y1));
+                }
+
+                List<List<double>> holesval = new List<List<double>>();
+                int index = 0;
+                for (int i = 0; i < sizes2.Length; i++)
+                {
+                    holesval.Add(new List<double>());
+                    for (int j = 0; j < sizes2[i]; j++)
+                    {
+                        holesval.Last().Add(hdat1[index]);
+                        index++;
+                    }
+                }
+
+                List<List<PointF>> holesout = new List<List<PointF>>();
+                foreach (var item in holesval)
+                {
+                    holesout.Add(new List<PointF>());
+                    for (int i = 0; i < item.Count; i += 2)
+                    {
+                        var x = (float)item[i];
+                        var y = (float)item[i + 1];
+                        holesout.Last().Add(new PointF(x, y));
+                    }
+                }
+
+                ret = new NFP();
+                ret.Points = new SvgPoint[] { };
+                foreach (var item in Apts)
+                {
+                    ret.AddPoint(new SvgPoint(item.X, item.Y));
+                }
+
+                foreach (var item in holesout)
+                {
+                    ret.children = new List<NFP>();
+                    ret.children.Add(new NFP());
+                    ret.children.Last().Points = new SvgPoint[] { };
+                    foreach (var hitem in item)
+                    {
+                        ret.children.Last().AddPoint(new SvgPoint(hitem.X, hitem.Y));
+                    }
                 }
             }
-
-            List<List<PointF>> holesout = new List<List<PointF>>();
-            foreach (var item in holesval)
+            finally
             {
-                holesout.Add(new List<PointF>());
-                for (int i = 0; i < item.Count; i += 2)
-                {
-                    var x = (float)item[i];
-                    var y = (float)item[i + 1];
-                    holesout.Last().Add(new PointF(x, y));
-                }
+                // This is CRITICAL: always return the arrays to the pool when finished.
+                ArrayPool<double>.Shared.Return(dat1);
+                ArrayPool<double>.Shared.Return(hdat1);
             }
 
-            NFP ret = new NFP();
-            ret.Points = new SvgPoint[] { };
-            foreach (var item in Apts)
-            {
-                ret.AddPoint(new SvgPoint(item.X, item.Y));
-            }
-            foreach (var item in holesout)
-            {
-                ret.children = new List<NFP>();
-                ret.children.Add(new NFP());
-                ret.children.Last().Points = new SvgPoint[] { };
-                foreach (var hitem in item)
-                {
-                    ret.children.Last().AddPoint(new SvgPoint(hitem.X, hitem.Y));
-                }
-            }
+            // Now 'ret' holds the processed data, and the temporary arrays have been safely returned.
 
             swg.Stop();
             var msg = swg.ElapsedMilliseconds;
@@ -367,7 +380,7 @@ namespace DeepNestLib
 
             if (cacheAllow)
             {
-                cacheProcess.Add(key, res);
+                cacheProcess.TryAdd(key, res);
             }
             return res;
         }
@@ -420,7 +433,7 @@ namespace DeepNestLib
 
             var frame = getFrame(A);
 
-            var nfp = getOuterNfp(frame, B,  type, true);
+            var nfp = getOuterNfp(frame, B, type, true);
 
             if (nfp == null || nfp.children == null || nfp.children.Count == 0)
             {
@@ -493,7 +506,7 @@ namespace DeepNestLib
             NFP rotated = new NFP();
 
             var angle = degrees * Math.PI / 180;
-            List<SvgPoint> pp = new List<SvgPoint>();
+            List<SvgPoint> pp = new List<SvgPoint>(polygon.length);
             for (var i = 0; i < polygon.length; i++)
             {
                 var x = polygon[i].x;
@@ -545,8 +558,6 @@ namespace DeepNestLib
             List<SheetPlacementItem> allplacements = new List<SheetPlacementItem>();
 
             double fitness = 0;
-
-            string key;
             NFP nfp;
             double sheetarea = -1;
             int totalPlaced = 0;
@@ -1053,73 +1064,47 @@ namespace DeepNestLib
             var individual = data.individual;
 
             var parts = individual.placements;
-            var rotations = individual.Rotation;
-            var ids = data.ids;
-            var sources = data.sources;
-            var children = data.children;
 
-            for (var i = 0; i < parts.Count; i++)
+            var pairs = new List<NfpPair>();
+
+            if (UseParallel)
             {
-                parts[i].rotation = rotations[i];
-                parts[i].id = ids[i];
-                parts[i].source = sources[i];
-                if (!data.config.Simplify)
-                {
-                    parts[i].children = children[i];
-                }
-            }
+                var concurrentPairs = new ConcurrentBag<NfpPair>();
 
-            for (int i = 0; i < data.sheets.Count; i++)
-            {
-                data.sheets[i].id = data.sheetids[i];
-                data.sheets[i].source = data.sheetsources[i];
-                data.sheets[i].children = data.sheetchildren[i];
-            }
-
-            // preprocess
-            List<NfpPair> pairs = new List<NfpPair>();
-
-            if (Background.UseParallel)
-            {
-                object lobj = new object();
                 Parallel.For(0, parts.Count, i =>
                 {
+                    var B = parts[i];
+                    for (var j = 0; j < i; j++)
                     {
-                        var B = parts[i];
-                        for (var j = 0; j < i; j++)
+                        var A = parts[j];
+                        var key = new NfpPair()
                         {
-                            var A = parts[j];
-                            var key = new NfpPair()
-                            {
-                                A = A,
-                                B = B,
-                                ARotation = A.rotation,
-                                BRotation = B.rotation,
-                                Asource = A.source.Value,
-                                Bsource = B.source.Value
+                            A = A,
+                            B = B,
+                            ARotation = A.rotation,
+                            BRotation = B.rotation,
+                            Asource = A.source.Value,
+                            Bsource = B.source.Value
+                        };
+                        var doc = new DbCacheKey()
+                        {
+                            A = A.source.Value,
+                            B = B.source.Value,
+                            ARotation = A.rotation,
+                            BRotation = B.rotation
+                        };
 
-                            };
-                            var doc = new DbCacheKey()
-                            {
-                                A = A.source.Value,
-                                B = B.source.Value,
-
-                                ARotation = A.rotation,
-                                BRotation = B.rotation
-
-                            };
-                            lock (lobj)
-                            {
-                                if (!inpairs(key, pairs.ToArray()) && !window.db.has(doc))
-                                {
-                                    pairs.Add(key);
-                                }
-                            }
+                        if (!window.db.has(doc))
+                        {
+                            concurrentPairs.Add(key);
                         }
                     }
                 });
 
-
+                pairs = concurrentPairs
+                    .GroupBy(p => new { p.Asource, p.Bsource, p.ARotation, p.BRotation })
+                    .Select(g => g.First())
+                    .ToList();
             }
             else
             {
@@ -1156,13 +1141,9 @@ namespace DeepNestLib
                 }
             }
 
-            //console.log('pairs: ', pairs.length);
-            //console.time('Total');
-
             this.parts = parts.ToArray();
             if (pairs.Count > 0)
             {
-
                 var ret1 = pmapDeepNest(pairs);
                 thenDeepNest(ret1, parts);
             }
@@ -1171,6 +1152,7 @@ namespace DeepNestLib
                 sync();
             }
         }
+
         public NFP getPart(int source, List<NFP> parts)
         {
             for (var k = 0; k < parts.Count; k++)
@@ -1256,18 +1238,17 @@ namespace DeepNestLib
             int cnt = 0;
             if (UseParallel)
             {
-                Parallel.For(0, processed.Count(), (i) =>
+                Parallel.ForEach(processed, (item) =>
                 {
                     float progress = 0.33f + 0.33f * (cnt / (float)processed.Count());
                     cnt++;
                     DisplayProgress(progress);
-                    thenIterate(processed[i], parts);
+                    thenIterate(item, parts);
                 });
-
             }
             else
             {
-                for (var i = 0; i < processed.Count(); i++)
+                for (var i = 0; i < processed.Length; i++)
                 {
                     float progress = 0.33f + 0.33f * (cnt / (float)processed.Count());
                     cnt++;
@@ -1276,8 +1257,6 @@ namespace DeepNestLib
                 }
             }
 
-            //console.timeEnd('Total');
-            //console.log('before sync');
             sync();
         }
 
@@ -1294,7 +1273,6 @@ namespace DeepNestLib
             return false;
         }
 
-        public static bool UseParallel = false;
         public NfpPair[] pmapDeepNest(List<NfpPair> pairs)
         {
 
@@ -1306,8 +1284,8 @@ namespace DeepNestLib
                 Parallel.For(0, pairs.Count, (i) =>
                 {
                     ret[i] = process(pairs[i]);
-                    float progress = 0.33f * (cnt / (float)pairs.Count);
-                    cnt++;
+                    int currentCount = Interlocked.Increment(ref cnt);
+                    float progress = 0.33f * (currentCount / (float)pairs.Count);
                     DisplayProgress(progress);
                 });
             }
@@ -1470,7 +1448,6 @@ namespace DeepNestLib
             return clipperNfp.ToArray();
         }
 
-        static object lockobj = new object();
         public static NFP getOuterNfp(NFP A, NFP B, int type, bool inside = false)//todo:?inside def?
         {
             NFP[] nfp = null;
@@ -1505,10 +1482,7 @@ namespace DeepNestLib
             // not found in cache           
             if (inside || (A.children != null && A.children.Count > 0))
             {
-                lock (lockobj)
-                {
-                    nfp = Process2(A, B, type);
-                }
+                nfp = Process2(A, B, type);
             }
             else
             {
@@ -1613,76 +1587,41 @@ namespace DeepNestLib
         {
             window = w;
         }
-        public bool has(DbCacheKey obj)
-        {
-            lock (lockobj)
-            {
-                var key = getKey(obj);
-                //var key = "A" + obj.A + "B" + obj.B + "Arot" + (int)Math.Round(obj.ARotation)                + "Brot" + (int)Math.Round(obj.BRotation);
-                if (window.nfpCache.ContainsKey(key))
-                {
-                    return true;
-                }
-                return false;
-            }
-
-        }
 
         public windowUnk window;
-        public object lockobj = new object();
 
-        string getKey(DbCacheKey obj)
+        public bool has(DbCacheKey obj)
         {
-            var key = "A" + obj.A + "B" + obj.B + "Arot" + (int)Math.Round(obj.ARotation * 10000) + "Brot" + (int)Math.Round((obj.BRotation * 10000)) + ";" + obj.Type;
-            return key;
+            var key = new NfpCacheKey(obj); // Create the new struct key
+            return window.nfpCache.ContainsKey(key);
         }
+
         internal void insert(DbCacheKey obj, bool inner = false)
         {
-
-            var key = getKey(obj);
-            //if (window.performance.memory.totalJSHeapSize < 0.8 * window.performance.memory.jsHeapSizeLimit)
-            {
-                lock (lockobj)
-                {
-                    if (!window.nfpCache.ContainsKey(key))
-                    {
-                        window.nfpCache.Add(key, Background.cloneNfp(obj.nfp, inner).ToList());
-                    }
-                    else
-                    {
-                        throw new Exception("trouble .cache allready has such key");
-                        //   window.nfpCache[key] = Background.cloneNfp(new[] { obj.nfp }, inner).ToList();
-                    }
-                }
-                //console.log('cached: ',window.cache[key].poly);
-                //console.log('using', window.performance.memory.totalJSHeapSize/window.performance.memory.jsHeapSizeLimit);
-            }
+            var key = new NfpCacheKey(obj); // Create the new struct key
+            var value = Background.cloneNfp(obj.nfp, inner).ToList();
+            window.nfpCache.TryAdd(key, value);
         }
+
         public NFP[] find(DbCacheKey obj, bool inner = false)
         {
-            lock (lockobj)
+            var key = new NfpCacheKey(obj); // Create the new struct key
+            if (window.nfpCache.TryGetValue(key, out List<NFP> cachedNfp))
             {
-                var key = getKey(obj);
-                //var key = "A" + obj.A + "B" + obj.B + "Arot" + (int)Math.Round(obj.ARotation) + "Brot" + (int)Math.Round((obj.BRotation));
-
-                //console.log('key: ', key);
-                if (window.nfpCache.ContainsKey(key))
-                {
-                    return Background.cloneNfp(window.nfpCache[key].ToArray(), inner);
-                }
-
-                return null;
+                return Background.cloneNfp(cachedNfp.ToArray(), inner);
             }
+            return null;
         }
-
     }
+
     public class windowUnk
     {
         public windowUnk()
         {
             db = new dbCache(this);
         }
-        public Dictionary<string, List<NFP>> nfpCache = new Dictionary<string, List<NFP>>();
+
+        public ConcurrentDictionary<NfpCacheKey, List<NFP>> nfpCache = new ConcurrentDictionary<NfpCacheKey, List<NFP>>();
         public dbCache db;
     }
 }
