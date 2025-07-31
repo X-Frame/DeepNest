@@ -20,5 +20,7 @@
         public double TimeRatio { get; set; } = 0.5;
         public bool MergeLines { get; set; } = false;
         public bool Simplify { get; set; }
+
+        public bool UseParallel { get; set; } = false;
     }
 }
