@@ -1,13 +1,12 @@
 ﻿using System;
 using System.Collections.Generic;
-using System.Drawing;
 using System.Linq;
-using System.Text;
+using System.Threading;
 
 namespace DeepNestLib
 {
     public class GeneticAlgorithm
-    {        
+    {
         SvgNestConfig Config;
         public List<PopulationItem> population;
 
@@ -26,7 +25,7 @@ namespace DeepNestLib
 
         };
 
-        public GeneticAlgorithm(NFP[] adam, SvgNestConfig config)
+        public GeneticAlgorithm(NFP[] adam, SvgNestConfig config, CancellationToken cancellationToken)
         {
 
             List<float> ang2 = new List<float>();
@@ -36,7 +35,7 @@ namespace DeepNestLib
             }
             defaultAngles = ang2.ToArray();
             Config = config;
-            
+
 
             List<float> angles = new List<float>();
             for (int i = 0; i < adam.Length; i++)
@@ -57,12 +56,13 @@ namespace DeepNestLib
             population.Add(new PopulationItem() { placements = adam.ToList(), Rotation = angles.ToArray() });
             while (population.Count() < config.PopulationSize)
             {
+                cancellationToken.ThrowIfCancellationRequested();
                 var mutant = this.mutate(population[0]);
                 population.Add(mutant);
             }
         }
-       
-       
+
+
         public PopulationItem mutate(PopulationItem p)
         {
             var clone = new PopulationItem();
@@ -105,7 +105,7 @@ namespace DeepNestLib
             return array;
         }
 
-    
+
         // returns a random individual from the population, weighted to the front of the list (lower fitness value is more likely to be selected)
         public PopulationItem randomWeightedIndividual(PopulationItem exclude = null)
         {

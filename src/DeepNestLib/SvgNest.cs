@@ -1,6 +1,7 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Linq;
+using System.Threading;
 using ClipperLib;
 
 namespace DeepNestLib
@@ -403,8 +404,9 @@ namespace DeepNestLib
             return null;
         }
         // offset tree recursively
-        public static void offsetTree(NFP t, double offset, SvgNestConfig config, bool? inside = null)
+        public static void offsetTree(NFP t, double offset, SvgNestConfig config, CancellationToken cancellationToken, bool? inside = null)
         {
+            cancellationToken.ThrowIfCancellationRequested();
 
             var simple = t;
 
@@ -447,7 +449,7 @@ namespace DeepNestLib
                 for (var i = 0; i < t.children.Count; i++)
                 {
 
-                    offsetTree(t.children[i], -offset, config, (inside == null) ? true : (!inside));
+                    offsetTree(t.children[i], -offset, config, cancellationToken, (inside == null) ? true : (!inside));
                 }
             }
         }
@@ -724,7 +726,7 @@ namespace DeepNestLib
                 }
             }
         }
-        public void launchWorkers(NestItem[] parts)
+        public void launchWorkers(NestItem[] parts, CancellationToken cancellationToken)
         {
 
             background.ResponseAction = ResponseProcessor;
@@ -766,7 +768,7 @@ namespace DeepNestLib
                 adam.Insert(9, temp);
                 
                 #endregion*/
-                ga = new GeneticAlgorithm(adam.ToArray(), Config);
+                ga = new GeneticAlgorithm(adam.ToArray(), Config, cancellationToken);
             }
             individual = null;
 
@@ -857,7 +859,7 @@ namespace DeepNestLib
 
                     };
 
-                    background.BackgroundStart(data);
+                    background.BackgroundStart(data, cancellationToken);
                     //ipcRenderer.send('background-start', { index: i, sheets: sheets, sheetids: sheetids, sheetsources: sheetsources, sheetchildren: sheetchildren, individual: GA.population[i], config: config, ids: ids, sources: sources, children: children});
                     running++;
                 }
