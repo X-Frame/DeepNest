@@ -3,6 +3,7 @@ using System.Collections.Concurrent;
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
+using System.Threading;
 using System.Threading.Tasks;
 using System.Xml.Linq;
 
@@ -38,7 +39,7 @@ namespace DeepNestLib
         }
 
         bool offsetTreePhase = true;
-        public void NestIterate()
+        public void NestIterate(CancellationToken cancellationToken)
         {
             List<NFP> lsheets = new List<NFP>();
             List<NFP> lpoly = new List<NFP>();
@@ -53,6 +54,7 @@ namespace DeepNestLib
             }
             foreach (var item in Polygons)
             {
+                cancellationToken.ThrowIfCancellationRequested();
                 NFP clone = new NFP();
                 clone.id = item.id;
                 clone.source = item.source;
@@ -75,6 +77,7 @@ namespace DeepNestLib
 
             foreach (var item in Sheets)
             {
+                cancellationToken.ThrowIfCancellationRequested();
                 NFP clone = new NFP();
                 clone.id = item.id;
                 clone.source = item.source;
@@ -84,6 +87,7 @@ namespace DeepNestLib
                     clone.children = new List<NFP>();
                     foreach (var citem in item.children)
                     {
+                        cancellationToken.ThrowIfCancellationRequested();
                         clone.children.Add(new NFP());
                         var l = clone.children.Last();
                         l.id = citem.id;
@@ -101,9 +105,11 @@ namespace DeepNestLib
                 {
                     Parallel.ForEach(grps, (item) =>
                     {
-                        SvgNest.offsetTree(item.First(), 0.5 * SvgNest.Config.Spacing, SvgNest.Config);
+                        cancellationToken.ThrowIfCancellationRequested();
+                        SvgNest.offsetTree(item.First(), 0.5 * SvgNest.Config.Spacing, SvgNest.Config, cancellationToken);
                         foreach (var zitem in item)
                         {
+                            cancellationToken.ThrowIfCancellationRequested();
                             zitem.Points = item.First().Points.ToArray();
                         }
 
@@ -115,9 +121,11 @@ namespace DeepNestLib
 
                     foreach (var item in grps)
                     {
-                        SvgNest.offsetTree(item.First(), 0.5 * SvgNest.Config.Spacing, SvgNest.Config);
+                        cancellationToken.ThrowIfCancellationRequested();
+                        SvgNest.offsetTree(item.First(), 0.5 * SvgNest.Config.Spacing, SvgNest.Config, cancellationToken);
                         foreach (var zitem in item)
                         {
+                            cancellationToken.ThrowIfCancellationRequested();
                             zitem.Points = item.First().Points.ToArray();
                         }
                     }
@@ -125,7 +133,8 @@ namespace DeepNestLib
 
                 foreach (var item in lsheets)
                 {
-                    SvgNest.offsetTree(item, SvgNest.Config.SheetEdgeOffset, SvgNest.Config, true);
+                    cancellationToken.ThrowIfCancellationRequested();
+                    SvgNest.offsetTree(item, SvgNest.Config.SheetEdgeOffset, SvgNest.Config, cancellationToken, true);
                 }
             }
 
@@ -155,13 +164,13 @@ namespace DeepNestLib
                 item.Polygon.source = srcc++;
             }
 
-
-            Nest.launchWorkers(partsLocal.ToArray());
+            cancellationToken.ThrowIfCancellationRequested();
+            Nest.launchWorkers(partsLocal.ToArray(), cancellationToken);
             var plcpr = Nest.nests.First();
 
             if (current == null || plcpr.fitness < current.fitness)
             {
-                AssignPlacement(plcpr);
+                AssignPlacement(plcpr, cancellationToken);
             }
             Iterations++;
         }
@@ -172,7 +181,7 @@ namespace DeepNestLib
         }
 
 
-        public void AssignPlacement(SheetPlacement plcpr)
+        public void AssignPlacement(SheetPlacement plcpr, CancellationToken cancellationToken)
         {
             current = plcpr;
             double totalSheetsArea = 0;
@@ -182,12 +191,14 @@ namespace DeepNestLib
             List<NFP> placed = new List<NFP>();
             foreach (var item in Polygons)
             {
+                cancellationToken.ThrowIfCancellationRequested();
                 item.sheet = null;
             }
             List<int> sheetsIds = new List<int>();
 
             foreach (var item in plcpr.placements)
             {
+                cancellationToken.ThrowIfCancellationRequested();
                 foreach (var zitem in item)
                 {
                     var sheetid = zitem.sheetId;
@@ -201,6 +212,8 @@ namespace DeepNestLib
 
                     foreach (var ssitem in zitem.sheetplacements)
                     {
+                        cancellationToken.ThrowIfCancellationRequested();
+
                         PlacedPartsCount++;
                         var poly = Polygons.First(z => z.id == ssitem.id);
                         totalPartsArea += GeometryUtil.polygonArea(poly);

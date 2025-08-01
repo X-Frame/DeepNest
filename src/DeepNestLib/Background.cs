@@ -530,7 +530,7 @@ namespace DeepNestLib
             return rotated;
         }
 
-        public static SheetPlacement placeParts(NFP[] sheets, NFP[] parts, SvgNestConfig config, int nestindex)
+        public static SheetPlacement placeParts(NFP[] sheets, NFP[] parts, SvgNestConfig config, int nestindex, CancellationToken cancellationToken)
         {
             if (sheets == null || sheets.Count() == 0) return null;
 
@@ -564,6 +564,7 @@ namespace DeepNestLib
             int totalParts = parts.Count();
             while (parts.Length > 0)
             {
+                cancellationToken.ThrowIfCancellationRequested(); // Check for cancellation at the start of each sheet placement
 
                 List<NFP> placed = new List<NFP>();
 
@@ -588,6 +589,7 @@ namespace DeepNestLib
                 double? minarea = null;
                 for (i = 0; i < parts.Length; i++)
                 {
+                    cancellationToken.ThrowIfCancellationRequested(); // Check for cancellation for each part
                     float prog = 0.66f + 0.34f * (totalPlaced / (float)totalParts);
                     DisplayProgress(prog);
 
@@ -1038,7 +1040,7 @@ namespace DeepNestLib
         public Action<SheetPlacement> ResponseAction;
 
         public static long LastPlacePartTime = 0;
-        public void sync()
+        public void sync(CancellationToken cancellationToken)
         {
             //console.log('starting synchronous calculations', Object.keys(window.nfpCache).length);
             //console.log('in sync');
@@ -1049,7 +1051,7 @@ namespace DeepNestLib
             }
             //console.log('nfp cached:', c);
             Stopwatch sw = Stopwatch.StartNew();
-            var placement = placeParts(data.sheets.ToArray(), parts, data.config, index);
+            var placement = placeParts(data.sheets.ToArray(), parts, data.config, index, cancellationToken);
             sw.Stop();
             LastPlacePartTime = sw.ElapsedMilliseconds;
 
@@ -1057,7 +1059,7 @@ namespace DeepNestLib
             ResponseAction(placement);
             //ipcRenderer.send('background-response', placement);
         }
-        public void BackgroundStart(DataInfo data)
+        public void BackgroundStart(DataInfo data, CancellationToken cancellationToken)
         {
             this.data = data;
             var index = data.index;
@@ -1073,6 +1075,7 @@ namespace DeepNestLib
 
                 Parallel.For(0, parts.Count, i =>
                 {
+                    cancellationToken.ThrowIfCancellationRequested();
                     var B = parts[i];
                     for (var j = 0; j < i; j++)
                     {
@@ -1110,6 +1113,7 @@ namespace DeepNestLib
             {
                 for (var i = 0; i < parts.Count; i++)
                 {
+                    cancellationToken.ThrowIfCancellationRequested();
                     var B = parts[i];
                     for (var j = 0; j < i; j++)
                     {
@@ -1144,12 +1148,12 @@ namespace DeepNestLib
             this.parts = parts.ToArray();
             if (pairs.Count > 0)
             {
-                var ret1 = pmapDeepNest(pairs);
-                thenDeepNest(ret1, parts);
+                var ret1 = pmapDeepNest(pairs, cancellationToken);
+                thenDeepNest(ret1, parts, cancellationToken);
             }
             else
             {
-                sync();
+                sync(cancellationToken);
             }
         }
 
@@ -1233,7 +1237,7 @@ namespace DeepNestLib
                 displayProgress(p);
             }
         }
-        public void thenDeepNest(NfpPair[] processed, List<NFP> parts)
+        public void thenDeepNest(NfpPair[] processed, List<NFP> parts, CancellationToken token)
         {
             int cnt = 0;
             if (UseParallel)
@@ -1257,7 +1261,7 @@ namespace DeepNestLib
                 }
             }
 
-            sync();
+            sync(token);
         }
 
 
@@ -1273,7 +1277,7 @@ namespace DeepNestLib
             return false;
         }
 
-        public NfpPair[] pmapDeepNest(List<NfpPair> pairs)
+        public NfpPair[] pmapDeepNest(List<NfpPair> pairs, CancellationToken cancellationToken)
         {
 
 
@@ -1281,11 +1285,17 @@ namespace DeepNestLib
             int cnt = 0;
             if (UseParallel)
             {
-                Parallel.For(0, pairs.Count, (i) =>
+                Parallel.For(0, pairs.Count, (i, loopState) =>
                 {
-                    ret[i] = process(pairs[i]);
-                    int currentCount = Interlocked.Increment(ref cnt);
-                    float progress = 0.33f * (currentCount / (float)pairs.Count);
+                    if (cancellationToken.IsCancellationRequested)
+                    {
+                        loopState.Stop();
+                        return;
+                    }
+
+                    ret[i] = process(pairs[i], cancellationToken);
+                    float progress = 0.33f * (cnt / (float)pairs.Count);
+                    cnt++;
                     DisplayProgress(progress);
                 });
             }
@@ -1293,18 +1303,21 @@ namespace DeepNestLib
             {
                 for (int i = 0; i < pairs.Count; i++)
                 {
+                    cancellationToken.ThrowIfCancellationRequested();
+
                     var item = pairs[i];
-                    ret[i] = process(item);
+                    ret[i] = process(item, cancellationToken);
                     float progress = 0.33f * (cnt / (float)pairs.Count);
                     cnt++;
                     DisplayProgress(progress);
                 }
             }
+            cancellationToken.ThrowIfCancellationRequested();
             return ret.ToArray();
         }
-        public NfpPair process(NfpPair pair)
+        public NfpPair process(NfpPair pair, CancellationToken cancellationToken)
         {
-
+            cancellationToken.ThrowIfCancellationRequested();
 
             var A = rotatePolygon(pair.A, pair.ARotation);
             var B = rotatePolygon(pair.B, pair.BRotation);
