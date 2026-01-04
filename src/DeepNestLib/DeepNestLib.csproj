@@ -26,6 +26,7 @@
         <GeneratePackageOnBuild>true</GeneratePackageOnBuild>
         <IncludeSymbols>true</IncludeSymbols>
         <SymbolPackageFormat>snupkg</SymbolPackageFormat>
+        <TargetsForTfmSpecificBuildOutput>$(TargetsForTfmSpecificBuildOutput);IncludeProjectReferenceDlls</TargetsForTfmSpecificBuildOutput>
     </PropertyGroup>
 
     <PropertyGroup Condition="'$(Configuration)'=='Debug'">
@@ -47,15 +48,23 @@
     </ItemGroup>
 
     <ItemGroup>
-        <ProjectReference Include="..\clipper\clipper_library.csproj" />
-        <ProjectReference Include="..\MinkowskiWrapper\MinkowskiWrapper.csproj" />
+        <ProjectReference Include="..\clipper\clipper_library.csproj" >
+            <PrivateAssets>all</PrivateAssets>
+        </ProjectReference>
+        <ProjectReference Include="..\MinkowskiWrapper\MinkowskiWrapper.csproj" >
+            <PrivateAssets>all</PrivateAssets>
+        </ProjectReference>
     </ItemGroup>
 
     <ItemGroup>
-        <Content Include="..\MinkowskiWrapper\minkowski.dll">
-            <Pack>true</Pack>
-            <PackagePath>runtimes\win-x64\native</PackagePath>
-            <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
-        </Content>
+        <None Include="build\DeepNest.targets" Pack="true" PackagePath="build" />
+        <None Include="..\MinkowskiWrapper\minkowski.dll" Pack="true" PackagePath="build" />
     </ItemGroup>
+
+    <Target Name="IncludeProjectReferenceDlls">
+        <ItemGroup>
+            <BuildOutputInPackage Include="$(OutputPath)clipper_library.dll" />
+            <BuildOutputInPackage Include="$(OutputPath)MinkowskiWrapper.dll" />
+        </ItemGroup>
+    </Target>
 </Project>
