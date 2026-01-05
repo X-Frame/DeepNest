@@ -4,6 +4,7 @@
         <None Include="$(MSBuildThisFileDirectory)minkowski.dll">
             <Link>minkowski.dll</Link>
             <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+            <Visible>false</Visible>
         </None>
     </ItemGroup>
 </Project>
