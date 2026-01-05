@@ -9,18 +9,18 @@
 
         <!-- NuGet Package Metadata -->
         <PackageId>DeepNest</PackageId>
-        <Version>1.2.0</Version>
+        <Version>1.2.1</Version>
         <Authors>Rafael del Molino</Authors>
         <Company>Rafael del Molino</Company>
         <Product>DeepNestLib</Product>
         <Description>DeepNest for Rhino - 2D nesting library</Description>
-        <Copyright>Copyright © 2018-2025</Copyright>
+        <Copyright>Copyright © 2018-2026</Copyright>
         <PackageProjectUrl>https://github.com/RafaeldelM/nesting</PackageProjectUrl>
         <PackageLicenseExpression>MIT</PackageLicenseExpression>
         <PackageTags>DeepNest;nesting;geometry;CAD;Rhino</PackageTags>
         <RepositoryUrl>https://github.com/RafaeldelM/nesting</RepositoryUrl>
         <RepositoryType>git</RepositoryType>
-        <PackageReleaseNotes>Updated to .NET 8</PackageReleaseNotes>
+        <PackageReleaseNotes>Hidden native DLL from Solution Explorer</PackageReleaseNotes>
 
         <!-- Generate NuGet package on build -->
         <GeneratePackageOnBuild>true</GeneratePackageOnBuild>
