@@ -1,4 +1,4 @@
-﻿namespace DeepNestLib
+﻿namespace DeepNestLib.Svg
 {
     public class SvgNestConfig
     {

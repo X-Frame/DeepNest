@@ -1,6 +1,6 @@
 ﻿using System;
 
-namespace DeepNestLib
+namespace DeepNestLib.NoFitPolygon
 {
     public readonly struct NfpCacheKey : IEquatable<NfpCacheKey>
     {

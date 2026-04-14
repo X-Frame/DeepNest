@@ -1,5 +1,8 @@
 ﻿using ClipperLib;
 using DeepNestLib.Background;
+using DeepNestLib.NoFitPolygon;
+using DeepNestLib.Sheets;
+using DeepNestLib.Svg;
 using Minkowski;
 using System;
 using System.Buffers;
@@ -1104,9 +1107,9 @@ namespace DeepNestLib
             NFP A = RotatePolygon(pair.A, pair.ARotation);
             NFP B = RotatePolygon(pair.B, pair.BRotation);
 
-            IntPoint[] Ac = _Clipper.ScaleUpPaths(A, 10000000);
+            IntPoint[] Ac = ClipperHelper.ScaleUpPaths(A, 10000000);
 
-            IntPoint[] Bc = _Clipper.ScaleUpPaths(B, 10000000);
+            IntPoint[] Bc = ClipperHelper.ScaleUpPaths(B, 10000000);
             for (int i = 0; i < Bc.Length; i++)
             {
                 Bc[i].X *= -1;
@@ -1193,7 +1196,7 @@ namespace DeepNestLib
                         nfp.children[j].reverse();
                     }
                     //var childNfp = SvgNest.toClipperCoordinates(nfp.children[j]);
-                    IntPoint[] childNfp = _Clipper.ScaleUpPaths(nfp.children[j], config.ClipperScale);
+                    IntPoint[] childNfp = ClipperHelper.ScaleUpPaths(nfp.children[j], config.ClipperScale);
                     clipperNfp.Add(childNfp);
                 }
             }
@@ -1205,7 +1208,7 @@ namespace DeepNestLib
 
             // clipper js defines holes based on orientation
 
-            IntPoint[] outerNfp = _Clipper.ScaleUpPaths(nfp, config.ClipperScale);
+            IntPoint[] outerNfp = ClipperHelper.ScaleUpPaths(nfp, config.ClipperScale);
 
             clipperNfp.Add(outerNfp);
 
@@ -1252,9 +1255,9 @@ namespace DeepNestLib
             }
             else
             {
-                IntPoint[] Ac = _Clipper.ScaleUpPaths(A, 10000000);
+                IntPoint[] Ac = ClipperHelper.ScaleUpPaths(A, 10000000);
 
-                IntPoint[] Bc = _Clipper.ScaleUpPaths(B, 10000000);
+                IntPoint[] Bc = ClipperHelper.ScaleUpPaths(B, 10000000);
                 for (int i = 0; i < Bc.Length; i++)
                 {
                     Bc[i].X *= -1;

@@ -8,23 +8,23 @@ using System.Linq;
 using System.Text;
 using System.Xml.Linq;
 
-namespace DeepNestLib
+namespace DeepNestLib.Svg
 {
     public class SvgParser
     {
         public static RawDetail LoadSvg(string path)
         {
             XDocument doc = XDocument.Load(path);
-            var fi = new FileInfo(path);
+            FileInfo fi = new FileInfo(path);
             RawDetail s = new RawDetail();
             s.Name = fi.Name;
             List<GraphicsPath> paths = new List<GraphicsPath>();
-            var ns = doc.Descendants().First().Name.Namespace.NamespaceName;
+            string ns = doc.Descendants().First().Name.Namespace.NamespaceName;
 
 
-            foreach (var item in doc.Descendants("path"))
+            foreach (XElement item in doc.Descendants("path"))
             {
-                var dd = (item.Attribute("d").Value);
+                string dd = item.Attribute("d").Value;
 
                 List<string> cmnds = new List<string>();
                 StringBuilder sb = new StringBuilder();
@@ -51,7 +51,7 @@ namespace DeepNestLib
                 //    /*Points = p.PathPoints.Select(z => new SvgPoint(z.X, z.Y)).ToArray()*/ });
 
             }
-            foreach (var item in doc.Descendants("rect"))
+            foreach (XElement item in doc.Descendants("rect"))
             {
                 float xx = 0;
                 float yy = 0;
@@ -63,23 +63,23 @@ namespace DeepNestLib
                 {
                     yy = float.Parse(item.Attribute("y").Value);
                 }
-                var ww = float.Parse(item.Attribute("width").Value);
-                var hh = float.Parse(item.Attribute("height").Value);
+                float ww = float.Parse(item.Attribute("width").Value);
+                float hh = float.Parse(item.Attribute("height").Value);
                 GraphicsPath p = new GraphicsPath();
                 p.AddRectangle(new RectangleF(xx, yy, ww, hh));
                 s.Outers.Add(new LocalContour() { Points = p.PathPoints.ToList() });
 
             }
 
-            foreach (var item in doc.Descendants(XName.Get("polygon", ns)))
+            foreach (XElement item in doc.Descendants(XName.Get("polygon", ns)))
             {
-                var str = item.Attribute("points").Value.ToString();
-                var spl = str.Split(new string[] { " " }, StringSplitOptions.RemoveEmptyEntries);
+                string str = item.Attribute("points").Value.ToString();
+                string[] spl = str.Split(new string[] { " " }, StringSplitOptions.RemoveEmptyEntries);
                 List<PointF> points = new List<PointF>();
-                foreach (var sitem in spl)
+                foreach (string sitem in spl)
                 {
-                    var spl2 = sitem.Split(new string[] { "," }, StringSplitOptions.RemoveEmptyEntries).ToArray();
-                    var ar = spl2.Select(z => float.Parse(z, CultureInfo.InvariantCulture)).ToArray();
+                    string[] spl2 = sitem.Split(new string[] { "," }, StringSplitOptions.RemoveEmptyEntries).ToArray();
+                    float[] ar = spl2.Select(z => float.Parse(z, CultureInfo.InvariantCulture)).ToArray();
                     points.Add(new PointF(ar[0], ar[1]));
                 }
                 s.Outers.Add(new LocalContour() { Points = points.ToList() });
@@ -93,19 +93,22 @@ namespace DeepNestLib
             StringBuilder sb = new StringBuilder();
             sb.AppendLine("	<svg version=\"1.1\" id=\"svg2\" xmlns=\"http://www.w3.org/2000/svg\" xmlns:xlink=\"http://www.w3.org/1999/xlink\"   xml:space=\"preserve\">");
 
-            foreach (var item in polygons.Union(sheets))
+            foreach (NFP item in polygons.Union(sheets))
             {
                 if (!sheets.Contains(item))
                 {
-                    if (!item.fitted) continue;
+                    if (!item.fitted)
+                    {
+                        continue;
+                    }
                 }
-                var m = new Matrix();
+                Matrix m = new Matrix();
                 m.Translate((float)item.x, (float)item.y);
                 m.Rotate(item.rotation);
 
                 PointF[] pp = item.Points.Select(z => new PointF((float)z.x, (float)z.y)).ToArray();
                 m.TransformPoints(pp);
-                var points = pp.Select(z => new SvgPoint(z.X, z.Y)).ToArray();
+                SvgPoint[] points = pp.Select(z => new SvgPoint(z.X, z.Y)).ToArray();
 
                 string fill = "lightblue";
                 if (sheets.Contains(item))
@@ -116,7 +119,7 @@ namespace DeepNestLib
                 sb.AppendLine($"<path fill=\"{fill}\"  stroke=\"black\" d=\"");
                 for (int i = 0; i < points.Count(); i++)
                 {
-                    var p = points[i];
+                    SvgPoint p = points[i];
                     string coord = p.x.ToString().Replace(",", ".") + " " + p.y.ToString().Replace(",", ".");
                     if (i == 0)
                     {
@@ -137,7 +140,7 @@ namespace DeepNestLib
 
                         for (int i = 0; i < points.Count(); i++)
                         {
-                            var p = points[i];
+                            SvgPoint p = points[i];
                             string coord = p.x.ToString().Replace(",", ".") + " " + p.y.ToString().Replace(",", ".");
                             if (i == 0)
                             {
@@ -162,20 +165,19 @@ namespace DeepNestLib
         public static NFP polygonify(XElement element)
         {
             List<SvgPoint> poly = new List<SvgPoint>();
-            int i;
 
             switch (element.Name.LocalName)
             {
                 case "polygon":
                 case "polyline":
                     {
-                        var pp = element.Attribute("points").Value;
-                        var spl = pp.Split(new char[] { ' ' }, StringSplitOptions.RemoveEmptyEntries);
-                        foreach (var item in spl)
+                        string pp = element.Attribute("points").Value;
+                        string[] spl = pp.Split(new char[] { ' ' }, StringSplitOptions.RemoveEmptyEntries);
+                        foreach (string item in spl)
                         {
-                            var spl2 = item.Split(new char[] { ',' }, StringSplitOptions.RemoveEmptyEntries).ToArray();
-                            var x = float.Parse(spl2[0], CultureInfo.InvariantCulture);
-                            var y = float.Parse(spl2[1], CultureInfo.InvariantCulture);
+                            string[] spl2 = item.Split(new char[] { ',' }, StringSplitOptions.RemoveEmptyEntries).ToArray();
+                            float x = float.Parse(spl2[0], CultureInfo.InvariantCulture);
+                            float y = float.Parse(spl2[1], CultureInfo.InvariantCulture);
                             poly.Add(new SvgPoint(x, y));
                         }
 
@@ -193,8 +195,8 @@ namespace DeepNestLib
                         {
                             y = float.Parse(element.Attribute("y").Value, CultureInfo.InvariantCulture);
                         }
-                        var w = float.Parse(element.Attribute("width").Value, CultureInfo.InvariantCulture);
-                        var h = float.Parse(element.Attribute("height").Value, CultureInfo.InvariantCulture);
+                        float w = float.Parse(element.Attribute("width").Value, CultureInfo.InvariantCulture);
+                        float h = float.Parse(element.Attribute("height").Value, CultureInfo.InvariantCulture);
                         poly.Add(new SvgPoint(x, y));
                         poly.Add(new SvgPoint(x + w, y));
                         poly.Add(new SvgPoint(x + w, y + h));
@@ -362,8 +364,8 @@ namespace DeepNestLib
                 float len = 0;
                 for (int i = 1; i <= Points.Count; i++)
                 {
-                    var p1 = Points[i - 1];
-                    var p2 = Points[i % Points.Count];
+                    PointF p1 = Points[i - 1];
+                    PointF p2 = Points[i % Points.Count];
                     len += (float)Math.Sqrt(Math.Pow(p1.X - p2.X, 2) + Math.Pow(p1.Y - p2.Y, 2));
                 }
                 return len;

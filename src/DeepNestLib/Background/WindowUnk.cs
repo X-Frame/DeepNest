@@ -1,4 +1,5 @@
-﻿using System.Collections.Concurrent;
+﻿using DeepNestLib.NoFitPolygon;
+using System.Collections.Concurrent;
 using System.Collections.Generic;
 
 namespace DeepNestLib.Background
