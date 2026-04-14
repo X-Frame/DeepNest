@@ -195,7 +195,7 @@ namespace DeepNestLib.Svg
             List<NFP> holes = new List<NFP>();
             for (i = 0; i < offsets.Length; i++)
             {
-                double area = GeometryUtil.polygonArea(offsets[i]);
+                double area = GeometryUtil.PolygonArea(offsets[i]);
                 if (offset == null || area < offsetArea)
                 {
                     offset = offsets[i];
@@ -302,11 +302,11 @@ namespace DeepNestLib.Svg
                         continue;
                     }
 
-                    if ((GeometryUtil._almostEqual(s1.x, s2.x) || GeometryUtil._almostEqual(s1.y, s2.y)) && // we only really care about vertical and horizontal lines
-                    GeometryUtil._withinDistance(p1, s1, 2 * tolerance) &&
-                    GeometryUtil._withinDistance(p2, s2, 2 * tolerance) &&
-                    (!GeometryUtil._withinDistance(p1, s1, Config.CurveTolerance / 1000) ||
-                    !GeometryUtil._withinDistance(p2, s2, Config.CurveTolerance / 1000)))
+                    if ((GeometryUtil.AlmostEqual(s1.x, s2.x) || GeometryUtil.AlmostEqual(s1.y, s2.y)) && // we only really care about vertical and horizontal lines
+                    GeometryUtil.WithinDistance(p1, s1, 2 * tolerance) &&
+                    GeometryUtil.WithinDistance(p2, s2, 2 * tolerance) &&
+                    (!GeometryUtil.WithinDistance(p1, s1, Config.CurveTolerance / 1000) ||
+                    !GeometryUtil.WithinDistance(p2, s2, Config.CurveTolerance / 1000)))
                     {
                         p1.x = s1.x;
                         p1.y = s1.y;
@@ -332,7 +332,7 @@ namespace DeepNestLib.Svg
                 for (i = 0; i < combined.Count; i++)
                 {
                     NFP n = NestingService.ToNestCoordinates(combined[i].ToArray(), 10000000);
-                    double sarea = -GeometryUtil.polygonArea(n);
+                    double sarea = -GeometryUtil.PolygonArea(n);
                     if (largestArea == null || largestArea < sarea)
                     {
                         offset = n;
@@ -382,7 +382,7 @@ namespace DeepNestLib.Svg
         {
             for (int i = 0; i < p.length; i++)
             {
-                if (GeometryUtil._withinDistance(v, p[i], Config.CurveTolerance / 1000))
+                if (GeometryUtil.WithinDistance(v, p[i], Config.CurveTolerance / 1000))
                 {
                     return i;
                 }
@@ -442,7 +442,7 @@ namespace DeepNestLib.Svg
         public static NFP[] PolygonOffsetDeepNest(NFP polygon, double offset)
         {
 
-            if (offset == 0 || GeometryUtil._almostEqual(offset, 0))
+            if (offset == 0 || GeometryUtil.AlmostEqual(offset, 0))
             {
                 return new[] { polygon };
             }
@@ -559,8 +559,8 @@ namespace DeepNestLib.Svg
             // remove duplicate endpoints
             SvgPoint start = cleaned[0];
             SvgPoint end = cleaned[cleaned.length - 1];
-            if (start == end || GeometryUtil._almostEqual(start.x, end.x)
-                && GeometryUtil._almostEqual(start.y, end.y))
+            if (start == end || GeometryUtil.AlmostEqual(start.x, end.x)
+                && GeometryUtil.AlmostEqual(start.y, end.y))
             {
                 cleaned.Points = cleaned.Points.Take(cleaned.Points.Count() - 1).ToArray();
             }
@@ -600,7 +600,7 @@ namespace DeepNestLib.Svg
                     {
                         continue;
                     }
-                    if (GeometryUtil.pointInPolygon(p.Polygon.Points[0], list[j].Polygon).Value)
+                    if (GeometryUtil.PointInPolygon(p.Polygon.Points[0], list[j].Polygon).Value)
                     {
                         if (list[j].Childs == null)
                         {
@@ -712,7 +712,7 @@ namespace DeepNestLib.Svg
                     }
                 }
 
-                adam = adam.OrderByDescending(z => Math.Abs(GeometryUtil.polygonArea(z))).ToList();
+                adam = adam.OrderByDescending(z => Math.Abs(GeometryUtil.PolygonArea(z))).ToList();
                 ga = new GeneticAlgorithm(adam.ToArray(), Config, cancellationToken);
             }
             Individual = null;
