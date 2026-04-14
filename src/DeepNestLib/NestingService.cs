@@ -850,7 +850,7 @@ namespace DeepNestLib
             int index = data.index;
             PopulationItem individual = data.individual;
 
-            List<NFP> parts = individual.placements;
+            List<NFP> parts = individual.Placements;
 
             List<NfpPair> pairs = new List<NfpPair>();
 

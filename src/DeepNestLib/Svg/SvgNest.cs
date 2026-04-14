@@ -672,8 +672,8 @@ namespace DeepNestLib.Svg
             {
                 return;
             }
-            ga.Population[payload.index].processing = null;
-            ga.Population[payload.index].fitness = payload.fitness;
+            ga.Population[payload.index].Processing = null;
+            ga.Population[payload.index].Fitness = payload.fitness;
 
             // render placement
             if (nests.Count == 0 || nests[0].fitness > payload.fitness)
@@ -721,7 +721,7 @@ namespace DeepNestLib.Svg
             bool finished = true;
             for (int i = 0; i < ga.Population.Count; i++)
             {
-                if (ga.Population[i].fitness == null)
+                if (ga.Population[i].Fitness == null)
                 {
                     finished = false;
                     break;
@@ -735,7 +735,7 @@ namespace DeepNestLib.Svg
 
             int running = ga.Population.Where((p) =>
             {
-                return p.processing != null;
+                return p.Processing != null;
             }).Count();
 
             List<NFP> sheets = new List<NFP>();
@@ -766,20 +766,20 @@ namespace DeepNestLib.Svg
             {
                 //if(running < config.threads && !GA.population[i].processing && !GA.population[i].fitness){
                 // only one background window now...
-                if (running < 1 && ga.Population[i].processing == null && ga.Population[i].fitness == null)
+                if (running < 1 && ga.Population[i].Processing == null && ga.Population[i].Fitness == null)
                 {
-                    ga.Population[i].processing = true;
+                    ga.Population[i].Processing = true;
 
                     // hash values on arrays don't make it across ipc, store them in an array and reassemble on the other side....
                     List<int> ids = new List<int>();
                     List<int> sources = new List<int>();
                     List<List<NFP>> children = new List<List<NFP>>();
 
-                    for (int j = 0; j < ga.Population[i].placements.Count; j++)
+                    for (int j = 0; j < ga.Population[i].Placements.Count; j++)
                     {
-                        int id = ga.Population[i].placements[j].Id;
-                        int? source = ga.Population[i].placements[j].Source;
-                        List<NFP> child = ga.Population[i].placements[j].children;
+                        int id = ga.Population[i].Placements[j].Id;
+                        int? source = ga.Population[i].Placements[j].Source;
+                        List<NFP> child = ga.Population[i].Placements[j].children;
                         ids.Add(id);
                         sources.Add(source.Value);
                         children.Add(child);
