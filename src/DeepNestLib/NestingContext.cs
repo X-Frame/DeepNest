@@ -1,4 +1,6 @@
-﻿using DeepNestLib.Background;
+using DeepNestLib.Background;
+using DeepNestLib.Sheets;
+using DeepNestLib.Svg;
 using System;
 using System.Collections.Concurrent;
 using System.Collections.Generic;
@@ -107,7 +109,7 @@ namespace DeepNestLib
                     Parallel.ForEach(grps, (item) =>
                     {
                         cancellationToken.ThrowIfCancellationRequested();
-                        SvgNest.offsetTree(item.First(), 0.5 * SvgNest.Config.Spacing, SvgNest.Config, cancellationToken);
+                        SvgNest.OffsetTree(item.First(), 0.5 * SvgNest.Config.Spacing, SvgNest.Config, cancellationToken);
                         foreach (NFP? zitem in item)
                         {
                             cancellationToken.ThrowIfCancellationRequested();
@@ -123,7 +125,7 @@ namespace DeepNestLib
                     foreach (IGrouping<int?, NFP>? item in grps)
                     {
                         cancellationToken.ThrowIfCancellationRequested();
-                        SvgNest.offsetTree(item.First(), 0.5 * SvgNest.Config.Spacing, SvgNest.Config, cancellationToken);
+                        SvgNest.OffsetTree(item.First(), 0.5 * SvgNest.Config.Spacing, SvgNest.Config, cancellationToken);
                         foreach (NFP? zitem in item)
                         {
                             cancellationToken.ThrowIfCancellationRequested();
@@ -135,7 +137,7 @@ namespace DeepNestLib
                 foreach (NFP item in lsheets)
                 {
                     cancellationToken.ThrowIfCancellationRequested();
-                    SvgNest.offsetTree(item, SvgNest.Config.SheetEdgeOffset, SvgNest.Config, cancellationToken, true);
+                    SvgNest.OffsetTree(item, SvgNest.Config.SheetEdgeOffset, SvgNest.Config, cancellationToken, true);
                 }
             }
 
@@ -166,7 +168,7 @@ namespace DeepNestLib
             }
 
             cancellationToken.ThrowIfCancellationRequested();
-            Nest.launchWorkers(partsLocal.ToArray(), cancellationToken);
+            Nest.LaunchWorkers(partsLocal.ToArray(), cancellationToken);
             SheetPlacement plcpr = Nest.nests.First();
 
             if (current == null || plcpr.fitness < current.fitness)

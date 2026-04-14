@@ -1,4 +1,6 @@
-﻿namespace DeepNestLib
+﻿using DeepNestLib.Svg;
+
+namespace DeepNestLib
 {
     public class Simplify
     {

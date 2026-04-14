@@ -1,28 +1,35 @@
 ﻿using ClipperLib;
+using DeepNestLib.Sheets;
 using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Threading;
 
-namespace DeepNestLib
+namespace DeepNestLib.Svg
 {
-    public class SvgNest
+    public partial class SvgNest
     {
+        public static SvgNestConfig Config = new SvgNestConfig();
 
-        public SvgNest()
-        {
+        public NestingService background = new NestingService();
 
-        }
+        public PolygonTreeItem[] tree;
+
+        PopulationItem Individual = null;
+        GeneticAlgorithm ga;
+
+        public bool useHoles;
+        public bool searchEdges;
+
+        public List<SheetPlacement> nests = new List<SheetPlacement>();
+
+        public SvgNest() { }
         public SvgNest(SvgNestConfig config)
         {
             Config = config;
         }
-        public class InrangeItem
-        {
-            public SvgPoint point;
-            public double distance;
-        }
-        public static SvgPoint getTarget(SvgPoint o, NFP simple, double tol)
+
+        public static SvgPoint GetTarget(SvgPoint o, NFP simple, double tol)
         {
             List<InrangeItem> inrange = new List<InrangeItem>();
             // find closest points within 2 offset deltas
@@ -73,10 +80,7 @@ namespace DeepNestLib
             return target;
         }
 
-        public static SvgNestConfig Config = new SvgNestConfig();
-
-
-        public static NFP clone(NFP p)
+        public static NFP Clone(NFP p)
         {
             NFP newp = new NFP();
             for (int i = 0; i < p.length; i++)
@@ -93,28 +97,27 @@ namespace DeepNestLib
         }
 
 
-        public static bool pointInPolygon(SvgPoint point, NFP polygon)
+        public static bool PointInPolygon(SvgPoint point, NFP polygon)
         {
             // scaling is deliberately coarse to filter out points that lie *on* the polygon
+            IntPoint[] p = SvgToClipper2(polygon, 1000);
+            IntPoint pt = new IntPoint(1000 * point.x, 1000 * point.y);
 
-            IntPoint[] p = svgToClipper2(polygon, 1000);
-            IntPoint pt = new ClipperLib.IntPoint(1000 * point.x, 1000 * point.y);
-
-            return ClipperLib.Clipper.PointInPolygon(pt, p.ToList()) > 0;
+            return Clipper.PointInPolygon(pt, p.ToList()) > 0;
         }
 
         // returns true if any complex vertices fall outside the simple polygon
-        public static bool exterior(NFP simple, NFP complex, bool inside)
+        public static bool Exterior(NFP simple, NFP complex, bool inside)
         {
             // find all protruding vertices
             for (int i = 0; i < complex.length; i++)
             {
                 SvgPoint v = complex[i];
-                if (!inside && !pointInPolygon(v, simple) && find(v, simple) == null)
+                if (!inside && !PointInPolygon(v, simple) && Find(v, simple) == null)
                 {
                     return true;
                 }
-                if (inside && pointInPolygon(v, simple) && find(v, simple) != null)
+                if (inside && PointInPolygon(v, simple) && Find(v, simple) != null)
                 {
                     return true;
                 }
@@ -122,7 +125,7 @@ namespace DeepNestLib
             return false;
         }
 
-        public static NFP simplifyFunction(NFP polygon, bool inside)
+        public static NFP SimplifyFunction(NFP polygon, bool inside)
         {
             double tolerance = 4 * Config.CurveTolerance;
 
@@ -133,14 +136,6 @@ namespace DeepNestLib
 
             if (Config.Simplify)
             {
-                /*
-				// use convex hull
-				var hull = new ConvexHullGrahamScan();
-				for(var i=0; i<polygon.length; i++){
-					hull.addPoint(polygon[i].x, polygon[i].y);
-				}
-			
-				return hull.getHull();*/
                 NFP hull = NestingService.getHull(polygon);
                 if (hull != null)
                 {
@@ -152,7 +147,7 @@ namespace DeepNestLib
                 }
             }
 
-            NFP cleaned = cleanPolygon2(polygon);
+            NFP cleaned = CleanPolygon2(polygon);
             if (cleaned != null && cleaned.length > 1)
             {
                 polygon = cleaned;
@@ -181,11 +176,10 @@ namespace DeepNestLib
 
             NFP simple = Simplify.simplify(copy, tolerance, true);
             // now a polygon again
-            //simple.pop();
             simple.Points = simple.Points.Take(simple.Points.Count() - 1).ToArray();
 
             // could be dirty again (self intersections and/or coincident points)
-            simple = cleanPolygon2(simple);
+            simple = CleanPolygon2(simple);
 
             // simplification process reduced poly to a line or point
             if (simple == null)
@@ -195,7 +189,7 @@ namespace DeepNestLib
 
 
 
-            NFP[] offsets = polygonOffsetDeepNest(simple, inside ? -tolerance : tolerance);
+            NFP[] offsets = PolygonOffsetDeepNest(simple, inside ? -tolerance : tolerance);
 
             NFP offset = null;
             double offsetArea = 0;
@@ -221,10 +215,10 @@ namespace DeepNestLib
                 seg.AddPoint(simple[i]);
                 seg.AddPoint(simple[i + 1 == simple.length ? 0 : i + 1]);
 
-                int? index1 = find(seg[0], polygon);
-                int? index2 = find(seg[1], polygon);
+                int? index1 = Find(seg[0], polygon);
+                int? index2 = Find(seg[1], polygon);
 
-                if (index1 + 1 == index2 || index2 + 1 == index1 || (index1 == 0 && index2 == polygon.length - 1) || (index2 == 0 && index1 == polygon.length - 1))
+                if (index1 + 1 == index2 || index2 + 1 == index1 || index1 == 0 && index2 == polygon.length - 1 || index2 == 0 && index1 == polygon.length - 1)
                 {
                     seg[0].exact = true;
                     seg[1].exact = true;
@@ -237,14 +231,10 @@ namespace DeepNestLib
             {
                 double delta = j * (tolerance / numshells);
                 delta = inside ? -delta : delta;
-                NFP[] shell = polygonOffsetDeepNest(simple, delta);
+                NFP[] shell = PolygonOffsetDeepNest(simple, delta);
                 if (shell.Count() > 0)
                 {
                     shells[j] = shell.First();
-                }
-                else
-                {
-                    //shells[j] = shell;
                 }
             }
 
@@ -256,13 +246,13 @@ namespace DeepNestLib
             for (i = 0; i < offset.length; i++)
             {
                 SvgPoint o = offset[i];
-                SvgPoint target = getTarget(o, simple, 2 * tolerance);
+                SvgPoint target = GetTarget(o, simple, 2 * tolerance);
 
                 // reverse point offset and try to find exterior points
-                NFP test = clone(offset);
+                NFP test = Clone(offset);
                 test.Points[i] = new SvgPoint(target.x, target.y);
 
-                if (!exterior(test, polygon, inside))
+                if (!Exterior(test, polygon, inside))
                 {
                     o.x = target.x;
                     o.y = target.y;
@@ -276,10 +266,10 @@ namespace DeepNestLib
                         {
                             NFP shell = shells[j];
                             double delta = j * (tolerance / numshells);
-                            target = getTarget(o, shell, 2 * delta);
-                            test = clone(offset);
+                            target = GetTarget(o, shell, 2 * delta);
+                            test = Clone(offset);
                             test.Points[i] = new SvgPoint(target.x, target.y);
-                            if (!exterior(test, polygon, inside))
+                            if (!Exterior(test, polygon, inside))
                             {
                                 o.x = target.x;
                                 o.y = target.y;
@@ -327,19 +317,17 @@ namespace DeepNestLib
                 }
             }
 
-            //if(straightened){
-
-            IntPoint[] Ac = _Clipper.ScaleUpPaths(offset, 10000000);
-            IntPoint[] Bc = _Clipper.ScaleUpPaths(polygon, 10000000);
+            IntPoint[] Ac = ClipperHelper.ScaleUpPaths(offset, 10000000);
+            IntPoint[] Bc = ClipperHelper.ScaleUpPaths(polygon, 10000000);
 
             List<List<IntPoint>> combined = new List<List<IntPoint>>();
-            Clipper clipper = new ClipperLib.Clipper();
+            Clipper clipper = new Clipper();
 
-            clipper.AddPath(Ac.ToList(), ClipperLib.PolyType.ptSubject, true);
-            clipper.AddPath(Bc.ToList(), ClipperLib.PolyType.ptSubject, true);
+            clipper.AddPath(Ac.ToList(), PolyType.ptSubject, true);
+            clipper.AddPath(Bc.ToList(), PolyType.ptSubject, true);
 
             // the line straightening may have made the offset smaller than the simplified
-            if (clipper.Execute(ClipperLib.ClipType.ctUnion, combined, ClipperLib.PolyFillType.pftNonZero, ClipperLib.PolyFillType.pftNonZero))
+            if (clipper.Execute(ClipType.ctUnion, combined, PolyFillType.pftNonZero, PolyFillType.pftNonZero))
             {
                 double? largestArea = null;
                 for (i = 0; i < combined.Count; i++)
@@ -353,9 +341,8 @@ namespace DeepNestLib
                     }
                 }
             }
-            //}
 
-            cleaned = cleanPolygon2(offset);
+            cleaned = CleanPolygon2(offset);
             if (cleaned != null && cleaned.length > 1)
             {
                 offset = cleaned;
@@ -365,8 +352,8 @@ namespace DeepNestLib
             for (i = 0; i < offset.length; i++)
             {
                 SvgPoint[] seg = new SvgPoint[] { offset[i], offset[i + 1 == offset.length ? 0 : i + 1] };
-                int? index1 = find(seg[0], polygon);
-                int? index2 = find(seg[1], polygon);
+                int? index1 = Find(seg[0], polygon);
+                int? index2 = Find(seg[1], polygon);
                 if (index1 == null)
                 {
                     index1 = 0;
@@ -376,8 +363,8 @@ namespace DeepNestLib
                     index2 = 0;
                 }
                 if (index1 + 1 == index2 || index2 + 1 == index1
-                    || (index1 == 0 && index2 == polygon.length - 1) ||
-                    (index2 == 0 && index1 == polygon.length - 1))
+                    || index1 == 0 && index2 == polygon.length - 1 ||
+                    index2 == 0 && index1 == polygon.length - 1)
                 {
                     seg[0].exact = true;
                     seg[1].exact = true;
@@ -392,7 +379,7 @@ namespace DeepNestLib
             return offset;
 
         }
-        public static int? find(SvgPoint v, NFP p)
+        public static int? Find(SvgPoint v, NFP p)
         {
             for (int i = 0; i < p.length; i++)
             {
@@ -403,19 +390,19 @@ namespace DeepNestLib
             }
             return null;
         }
-        // offset tree recursively
-        public static void offsetTree(NFP t, double offset, SvgNestConfig config, CancellationToken cancellationToken, bool? inside = null)
+
+        public static void OffsetTree(NFP t, double offset, SvgNestConfig config, CancellationToken cancellationToken, bool? inside = null)
         {
             cancellationToken.ThrowIfCancellationRequested();
 
             NFP simple = t;
 
-            simple = simplifyFunction(t, (inside == null) ? false : inside.Value);
+            simple = SimplifyFunction(t, inside == null ? false : inside.Value);
 
             NFP[] offsetpaths = new NFP[] { simple };
             if (offset > 0)
             {
-                offsetpaths = polygonOffsetDeepNest(simple, offset);
+                offsetpaths = PolygonOffsetDeepNest(simple, offset);
             }
 
             if (offsetpaths.Count() > 0)
@@ -425,10 +412,6 @@ namespace DeepNestLib
                 rett.AddRange(offsetpaths[0].Points);
                 rett.AddRange(t.Points.Skip(t.length));
                 t.Points = rett.ToArray();
-
-                // replace array items in place
-
-                //Array.prototype.splice.apply(t, [0, t.length].concat(offsetpaths[0]));
             }
 
             if (simple.children != null && simple.children.Count > 0)
@@ -449,7 +432,7 @@ namespace DeepNestLib
                 for (int i = 0; i < t.children.Count; i++)
                 {
 
-                    offsetTree(t.children[i], -offset, config, cancellationToken, (inside == null) ? true : (!inside));
+                    OffsetTree(t.children[i], -offset, config, cancellationToken, inside == null ? true : !inside);
                 }
             }
         }
@@ -457,7 +440,7 @@ namespace DeepNestLib
 
         // use the clipper library to return an offset to the given polygon. Positive offset expands the polygon, negative contracts
         // note that this returns an array of polygons
-        public static NFP[] polygonOffsetDeepNest(NFP polygon, double offset)
+        public static NFP[] PolygonOffsetDeepNest(NFP polygon, double offset)
         {
 
             if (offset == 0 || GeometryUtil._almostEqual(offset, 0))
@@ -465,55 +448,52 @@ namespace DeepNestLib
                 return new[] { polygon };
             }
 
-            List<IntPoint> p = svgToClipper(polygon).ToList();
+            List<IntPoint> p = SvgToClipper(polygon).ToList();
 
             int miterLimit = 4;
-            ClipperOffset co = new ClipperLib.ClipperOffset(miterLimit, Config.CurveTolerance * Config.ClipperScale);
-            co.AddPath(p.ToList(), ClipperLib.JoinType.jtMiter, ClipperLib.EndType.etClosedPolygon);
+            ClipperOffset co = new ClipperOffset(miterLimit, Config.CurveTolerance * Config.ClipperScale);
+            co.AddPath(p.ToList(), JoinType.jtMiter, EndType.etClosedPolygon);
 
-            List<List<IntPoint>> newpaths = new List<List<ClipperLib.IntPoint>>();
+            List<List<IntPoint>> newpaths = new List<List<IntPoint>>();
             co.Execute(ref newpaths, offset * Config.ClipperScale);
 
 
             List<NFP> result = new List<NFP>();
             for (int i = 0; i < newpaths.Count; i++)
             {
-                result.Add(clipperToSvg(newpaths[i]));
+                result.Add(ClipperToSvg(newpaths[i]));
             }
 
 
             return result.ToArray();
         }
 
-
-
         // converts a polygon from normal float coordinates to integer coordinates used by clipper, as well as x/y -> X/Y
-        public static IntPoint[] svgToClipper2(NFP polygon, double? scale = null)
+        public static IntPoint[] SvgToClipper2(NFP polygon, double? scale = null)
         {
 
 
-            IntPoint[] d = _Clipper.ScaleUpPaths(polygon, scale == null ? Config.ClipperScale : scale.Value);
+            IntPoint[] d = ClipperHelper.ScaleUpPaths(polygon, scale == null ? Config.ClipperScale : scale.Value);
             return d.ToArray();
 
         }
 
         // converts a polygon from normal float coordinates to integer coordinates used by clipper, as well as x/y -> X/Y
-        public static ClipperLib.IntPoint[] svgToClipper(NFP polygon)
+        public static IntPoint[] SvgToClipper(NFP polygon)
         {
 
 
 
-            IntPoint[] d = _Clipper.ScaleUpPaths(polygon, Config.ClipperScale);
+            IntPoint[] d = ClipperHelper.ScaleUpPaths(polygon, Config.ClipperScale);
             return d.ToArray();
-
-            return polygon.Points.Select(z => new IntPoint((long)z.x, (long)z.y)).ToArray();
         }
+
         // returns a less complex polygon that satisfies the curve tolerance
-        public static NFP cleanPolygon(NFP polygon)
+        public static NFP CleanPolygon(NFP polygon)
         {
-            IntPoint[] p = svgToClipper2(polygon);
+            IntPoint[] p = SvgToClipper2(polygon);
             // remove self-intersections and find the biggest polygon that's left
-            List<List<IntPoint>> simple = ClipperLib.Clipper.SimplifyPolygon(p.ToList(), ClipperLib.PolyFillType.pftNonZero);
+            List<List<IntPoint>> simple = Clipper.SimplifyPolygon(p.ToList(), PolyFillType.pftNonZero);
 
             if (simple == null || simple.Count == 0)
             {
@@ -521,10 +501,10 @@ namespace DeepNestLib
             }
 
             List<IntPoint> biggest = simple[0];
-            double biggestarea = Math.Abs(ClipperLib.Clipper.Area(biggest));
+            double biggestarea = Math.Abs(Clipper.Area(biggest));
             for (int i = 1; i < simple.Count; i++)
             {
-                double area = Math.Abs(ClipperLib.Clipper.Area(simple[i]));
+                double area = Math.Abs(Clipper.Area(simple[i]));
                 if (area > biggestarea)
                 {
                     biggest = simple[i];
@@ -533,22 +513,22 @@ namespace DeepNestLib
             }
 
             // clean up singularities, coincident points and edges
-            List<IntPoint> clean = ClipperLib.Clipper.CleanPolygon(biggest, 0.01 *
+            List<IntPoint> clean = Clipper.CleanPolygon(biggest, 0.01 *
                 Config.CurveTolerance * Config.ClipperScale);
 
             if (clean == null || clean.Count == 0)
             {
                 return null;
             }
-            return clipperToSvg(clean);
+            return ClipperToSvg(clean);
 
         }
 
-        public static NFP cleanPolygon2(NFP polygon)
+        public static NFP CleanPolygon2(NFP polygon)
         {
-            IntPoint[] p = svgToClipper(polygon);
+            IntPoint[] p = SvgToClipper(polygon);
             // remove self-intersections and find the biggest polygon that's left
-            List<List<IntPoint>> simple = ClipperLib.Clipper.SimplifyPolygon(p.ToList(), ClipperLib.PolyFillType.pftNonZero);
+            List<List<IntPoint>> simple = Clipper.SimplifyPolygon(p.ToList(), PolyFillType.pftNonZero);
 
             if (simple == null || simple.Count == 0)
             {
@@ -556,10 +536,10 @@ namespace DeepNestLib
             }
 
             List<IntPoint> biggest = simple[0];
-            double biggestarea = Math.Abs(ClipperLib.Clipper.Area(biggest));
+            double biggestarea = Math.Abs(Clipper.Area(biggest));
             for (int i = 1; i < simple.Count; i++)
             {
-                double area = Math.Abs(ClipperLib.Clipper.Area(simple[i]));
+                double area = Math.Abs(Clipper.Area(simple[i]));
                 if (area > biggestarea)
                 {
                     biggest = simple[i];
@@ -568,20 +548,20 @@ namespace DeepNestLib
             }
 
             // clean up singularities, coincident points and edges
-            List<IntPoint> clean = ClipperLib.Clipper.CleanPolygon(biggest, 0.01 *
+            List<IntPoint> clean = Clipper.CleanPolygon(biggest, 0.01 *
                 Config.CurveTolerance * Config.ClipperScale);
 
             if (clean == null || clean.Count == 0)
             {
                 return null;
             }
-            NFP cleaned = clipperToSvg(clean);
+            NFP cleaned = ClipperToSvg(clean);
 
             // remove duplicate endpoints
             SvgPoint start = cleaned[0];
             SvgPoint end = cleaned[cleaned.length - 1];
-            if (start == end || (GeometryUtil._almostEqual(start.x, end.x)
-                && GeometryUtil._almostEqual(start.y, end.y)))
+            if (start == end || GeometryUtil._almostEqual(start.x, end.x)
+                && GeometryUtil._almostEqual(start.y, end.y))
             {
                 cleaned.Points = cleaned.Points.Take(cleaned.Points.Count() - 1).ToArray();
             }
@@ -589,8 +569,7 @@ namespace DeepNestLib
             return cleaned;
 
         }
-
-        public static NFP clipperToSvg(IList<IntPoint> polygon)
+        public static NFP ClipperToSvg(IList<IntPoint> polygon)
         {
             List<SvgPoint> ret = new List<SvgPoint>();
 
@@ -603,13 +582,12 @@ namespace DeepNestLib
         }
 
 
-        public int toTree(PolygonTreeItem[] list, int idstart = 0)
+        public static int ToTree(PolygonTreeItem[] list, int idstart = 0)
         {
             List<PolygonTreeItem> parents = new List<PolygonTreeItem>();
             int i, j;
 
             // assign a unique id to each leaf
-            //var id = idstart || 0;
             int id = idstart;
 
             for (i = 0; i < list.Length; i++)
@@ -661,14 +639,14 @@ namespace DeepNestLib
             {
                 if (parents[i].Childs != null)
                 {
-                    id = toTree(parents[i].Childs.ToArray(), id);
+                    id = ToTree(parents[i].Childs.ToArray(), id);
                 }
             }
 
             return id;
         }
 
-        public static NFP cloneTree(NFP tree)
+        public static NFP CloneTree(NFP tree)
         {
             NFP newtree = new NFP();
             foreach (SvgPoint t in tree.Points)
@@ -682,51 +660,35 @@ namespace DeepNestLib
                 newtree.children = new List<NFP>();
                 foreach (NFP c in tree.children)
                 {
-                    newtree.children.Add(cloneTree(c));
+                    newtree.children.Add(CloneTree(c));
                 }
-
             }
-
             return newtree;
         }
 
 
-        public NestingService background = new NestingService();
-
-
-        PopulationItem individual = null;
-        NFP[] placelist;
-        GeneticAlgorithm ga;
-
-        public List<SheetPlacement> nests = new List<SheetPlacement>();
-
         public void ResponseProcessor(SheetPlacement payload)
         {
-            //console.log('ipc response', payload);
             if (ga == null)
             {
-                // user might have quit while we're away
                 return;
             }
             ga.population[payload.index].processing = null;
             ga.population[payload.index].fitness = payload.fitness;
 
             // render placement
-            if (this.nests.Count == 0 || this.nests[0].fitness > payload.fitness)
+            if (nests.Count == 0 || nests[0].fitness > payload.fitness)
             {
-                this.nests.Insert(0, payload);
+                nests.Insert(0, payload);
 
-                if (this.nests.Count > Config.PopulationSize)
+                if (nests.Count > Config.PopulationSize)
                 {
-                    this.nests.RemoveAt(nests.Count - 1);
-                }
-                //if (displayCallback)
-                {
-                    // displayCallback();
+                    nests.RemoveAt(nests.Count - 1);
                 }
             }
         }
-        public void launchWorkers(NestItem[] parts, CancellationToken cancellationToken)
+
+        public void LaunchWorkers(NestItem[] parts, CancellationToken cancellationToken)
         {
 
             background.ResponseAction = ResponseProcessor;
@@ -741,7 +703,7 @@ namespace DeepNestLib
 
                         for (int j = 0; j < parts[i].Quanity; j++)
                         {
-                            NFP poly = cloneTree(parts[i].Polygon); // deep copy
+                            NFP poly = CloneTree(parts[i].Polygon); // deep copy
                             poly.id = id; // id is the unique id of all parts that will be nested, including cloned duplicates
                             poly.source = i; // source is the id of each unique part from the main part list
 
@@ -752,25 +714,9 @@ namespace DeepNestLib
                 }
 
                 adam = adam.OrderByDescending(z => Math.Abs(GeometryUtil.polygonArea(z))).ToList();
-                /*List<NFP> shuffle = new List<NFP>();
-                Random r = new Random(DateTime.Now.Millisecond);
-                while (adam.Any())
-                {
-                    var rr = r.Next(adam.Count);
-                    shuffle.Add(adam[rr]);
-                    adam.RemoveAt(rr);
-                }
-                adam = shuffle;*/
-
-                /*#region special case
-                var temp = adam[1];
-                adam.RemoveAt(1);
-                adam.Insert(9, temp);
-                
-                #endregion*/
                 ga = new GeneticAlgorithm(adam.ToArray(), Config, cancellationToken);
             }
-            individual = null;
+            Individual = null;
 
             // check if current generation is finished
             bool finished = true;
@@ -784,7 +730,6 @@ namespace DeepNestLib
             }
             if (finished)
             {
-                //console.log('new generation!');
                 // all individuals have been evaluated, start next generation
                 ga.generation();
             }
@@ -806,7 +751,7 @@ namespace DeepNestLib
                     NFP poly = parts[i].Polygon;
                     for (int j = 0; j < parts[i].Quanity; j++)
                     {
-                        NFP cln = cloneTree(poly);
+                        NFP cln = CloneTree(poly);
                         cln.id = sid; // id is the unique id of all parts that will be nested, including cloned duplicates
                         cln.source = poly.source; // source is the id of each unique part from the main part list
 
@@ -836,11 +781,8 @@ namespace DeepNestLib
                         int id = ga.population[i].placements[j].id;
                         int? source = ga.population[i].placements[j].source;
                         List<NFP> child = ga.population[i].placements[j].children;
-                        //ids[j] = id;
                         ids.Add(id);
-                        //sources[j] = source;
                         sources.Add(source.Value);
-                        //children[j] = child;
                         children.Add(child);
                     }
 
@@ -860,21 +802,12 @@ namespace DeepNestLib
                     };
 
                     background.BackgroundStart(data, cancellationToken);
-                    //ipcRenderer.send('background-start', { index: i, sheets: sheets, sheetids: sheetids, sheetsources: sheetsources, sheetchildren: sheetchildren, individual: GA.population[i], config: config, ids: ids, sources: sources, children: children});
                     running++;
                 }
             }
-
-
-
         }
 
-
-
-        public PolygonTreeItem[] tree;
-
-
-        public static IntPoint[] toClipperCoordinates(NFP polygon)
+        public static IntPoint[] ToClipperCoordinates(NFP polygon)
         {
             List<IntPoint> clone = new List<IntPoint>();
             for (int i = 0; i < polygon.length; i++)
@@ -889,305 +822,5 @@ namespace DeepNestLib
 
             return clone.ToArray();
         }
-
-
-
-        public bool useHoles;
-        public bool searchEdges;
-    }
-
-
-    public class _Clipper
-    {
-        public static ClipperLib.IntPoint[] ScaleUpPaths(NFP p, double scale = 1)
-        {
-            List<ClipperLib.IntPoint> ret = new List<ClipperLib.IntPoint>();
-
-            for (int i = 0; i < p.Points.Count(); i++)
-            {
-                //p.Points[i] = new SvgNestPort.SvgPoint((float)Math.Round(p.Points[i].x * scale), (float)Math.Round(p.Points[i].y * scale));
-                ret.Add(new ClipperLib.IntPoint(
-                    (long)Math.Round((decimal)p.Points[i].x * (decimal)scale),
-                    (long)Math.Round((decimal)p.Points[i].y * (decimal)scale)
-                ));
-
-            }
-            return ret.ToArray();
-        }
-        /*public static IntPoint[] ScaleUpPath(IntPoint[] p, double scale = 1)
-        {
-            for (int i = 0; i < p.Length; i++)
-            {
-
-                //p[i] = new IntPoint(p[i].X * scale, p[i].Y * scale);
-                p[i] = new IntPoint(
-                    (long)Math.Round((decimal)p[i].X * (decimal)scale),
-                    (long)Math.Round((decimal)p[i].Y * (decimal)scale));
-            }
-            return p.ToArray();
-        }
-        public static void ScaleUpPaths(List<List<IntPoint>> p, double scale = 1)
-        {
-            for (int i = 0; i < p.Count; i++)
-            {
-                for (int j = 0; j < p[i].Count; j++)
-                {
-                    p[i][j] = new IntPoint(p[i][j].X * scale, p[i][j].Y * scale);
-
-                }
-            }
-
-
-        }*/
-    }
-
-    public static class Extensions
-    {
-
-        public static double DistTo(this SvgPoint p, SvgPoint p2)
-        {
-            return Math.Sqrt(Math.Pow(p.x - p2.x, 2) + Math.Pow(p.y - p2.y, 2));
-        }
-
-        public static T[] splice<T>(this T[] p, int a, int b)
-        {
-            List<T> ret = new List<T>();
-            for (int i = 0; i < p.Length; i++)
-            {
-                if (i >= a && i < (a + b))
-                {
-                    continue;
-                }
-
-                ret.Add(p[i]);
-            }
-            return ret.ToArray();
-        }
-
-        public static List<List<ClipperLib.IntPoint>> splice(this List<List<ClipperLib.IntPoint>> p, int a, int b)
-        {
-            List<List<ClipperLib.IntPoint>> ret = new List<List<ClipperLib.IntPoint>>();
-            for (int i = a; i < (a + b); i++)
-            {
-                if (i >= a && i < (a + b))
-                {
-                    continue;
-                }
-
-                ret.Add(p[i]);
-            }
-            return ret;
-        }
-
-        public static NFP[] splice(this NFP[] p, int a, int b)
-        {
-            List<NFP> ret = new List<NFP>();
-            for (int i = 0; i < p.Length; i++)
-            {
-                if (i >= a && i < (a + b))
-                {
-                    continue;
-                }
-
-                ret.Add(p[i]);
-            }
-
-            return ret.ToArray();
-        }
-    }
-
-    public class DataInfo
-    {
-
-        public int index;
-        public List<NFP> sheets;
-        public int[] sheetids;
-        public int[] sheetsources;
-        public List<List<NFP>> sheetchildren;
-        public PopulationItem individual;
-        public SvgNestConfig config;
-        public int[] ids;
-        public int[] sources;
-        public List<List<NFP>> children;
-        //ipcRenderer.send('background-start', { index: i, sheets: sheets, sheetids: sheetids, sheetsources: sheetsources, sheetchildren: sheetchildren, 
-        //individual: GA.population[i], config: config, ids: ids, sources: sources, children: children});
-
-    }
-    public class PolygonTreeItem
-    {
-        public NFP Polygon;
-        public PolygonTreeItem Parent;
-        public List<PolygonTreeItem> Childs = new List<PolygonTreeItem>();
-    }
-
-    public enum PlacementTypeEnum
-    {
-        box, gravity, squeeze
-    }
-
-    public class DbCacheKey
-    {
-        public int? A;
-        public int? B;
-        public float ARotation;
-        public float BRotation;
-        public NFP[] nfp;
-        public int Type;
-    }
-
-    public class NfpPair
-    {
-        public NFP A;
-        public NFP B;
-        public NfpKey Key;
-        public NFP nfp;
-
-        public float ARotation;
-        public float BRotation;
-
-        public int Asource { get; internal set; }
-        public int Bsource { get; internal set; }
-    }
-
-    public class NonameReturn
-    {
-        public NfpKey key;
-        public NFP[] nfp;
-        public NFP[] value
-        {
-            get
-            {
-                return nfp;
-            }
-        }
-
-        public NonameReturn(NfpKey key, NFP[] nfp)
-        {
-            this.key = key;
-            this.nfp = nfp;
-        }
-    }
-
-    public interface IStringify
-    {
-        string stringify();
-    }
-    public class NfpKey : IStringify
-    {
-
-        public NFP A;
-        public NFP B;
-        public float ARotation { get; set; }
-        public float BRotation { get; set; }
-        public bool Inside { get; set; }
-
-        public int AIndex { get; set; }
-        public int BIndex { get; set; }
-        public object Asource;
-        public object Bsource;
-
-
-        public string stringify()
-        {
-            return $"A:{AIndex} B:{BIndex} inside:{Inside} Arotation:{ARotation} Brotation:{BRotation}";
-        }
-    }
-
-
-    public class SvgPoint
-    {
-        public bool exact = true;
-        public override string ToString()
-        {
-            return "x: " + x + "; y: " + y;
-        }
-        public int id;
-        public SvgPoint(double _x, double _y)
-        {
-            x = _x;
-            y = _y;
-        }
-        public bool marked;
-        public double x;
-        public double y;
-
-    }
-
-    public class PopulationItem
-    {
-        public object processing = null;
-
-        public double? fitness;
-
-        public float[] Rotation;
-        public List<NFP> placements;
-
-        public NFP[] paths;
-        public double area;
-    }
-
-
-    public class SheetPlacementItem
-    {
-        public int sheetId;
-        public int sheetSource;
-
-        public List<PlacementItem> sheetplacements = new List<PlacementItem>();
-        public List<PlacementItem> placements = new List<PlacementItem>();
-    }
-
-    public class PlacementItem
-    {
-        public double? mergedLength;
-        public object mergedSegments;
-        public List<List<ClipperLib.IntPoint>> nfp;
-        public int id;
-        public NFP hull;
-        public NFP hullsheet;
-
-        public float rotation;
-        public double x;
-        public double y;
-        public int source;
-    }
-
-    public class SheetPlacement
-    {
-        public double? fitness;
-
-        public float[] Rotation;
-        public List<SheetPlacementItem>[] placements;
-
-        public NFP[] paths;
-        public double area;
-        public double mergedLength;
-        internal int index;
-    }
-
-
-
-    public class Sheet : NFP
-    {
-        public double Width;
-        public double Height;
-    }
-
-    public class RectangleSheet : Sheet
-    {
-
-        public void Rebuild()
-        {
-            Points = new SvgPoint[] { };
-            AddPoint(new SvgPoint(x, y));
-            AddPoint(new SvgPoint(x + Width, y));
-            AddPoint(new SvgPoint(x + Width, y + Height));
-            AddPoint(new SvgPoint(x, y + Height));
-        }
-    }
-    public class NestItem
-    {
-        public NFP Polygon;
-        public int Quanity;
-        public bool IsSheet;
     }
 }

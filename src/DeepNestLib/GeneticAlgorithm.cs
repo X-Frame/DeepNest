@@ -1,4 +1,5 @@
-﻿using System;
+﻿using DeepNestLib.Svg;
+using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Threading;
@@ -114,7 +115,7 @@ namespace DeepNestLib
 
             if (exclude != null && Array.IndexOf(pop, exclude) >= 0)
             {
-                pop.splice(Array.IndexOf(pop, exclude), 1);
+                pop.Splice(Array.IndexOf(pop, exclude), 1);
             }
 
             var rand = r.NextDouble();

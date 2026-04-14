@@ -1,8 +1,7 @@
-﻿using System;
+﻿using DeepNestLib.Svg;
+using System;
 using System.Collections.Generic;
 using System.Linq;
-using System.Text;
-using System.Xml.Linq;
 
 namespace DeepNestLib
 {
@@ -12,7 +11,7 @@ namespace DeepNestLib
         public NFP sheet;
         public override string ToString()
         {
-            var str1 = (Points != null) ? Points.Count() + "" : "null";
+            string str1 = (Points != null) ? Points.Count() + "" : "null";
             return $"nfp: id: {id}; source: {source}; rotation: {rotation}; points: {str1}";
         }
         public NFP()
@@ -23,7 +22,7 @@ namespace DeepNestLib
         public string Name { get; set; }
         public void AddPoint(SvgPoint point)
         {
-            var list = Points.ToList();
+            List<SvgPoint> list = Points.ToList();
             list.Add(point);
             Points = list.ToArray();
         }
@@ -44,8 +43,8 @@ namespace DeepNestLib
         {
             get
             {
-                var maxx = Points.Max(z => z.x);
-                var minx = Points.Min(z => z.x);
+                double maxx = Points.Max(z => z.x);
+                double minx = Points.Min(z => z.x);
 
                 return maxx - minx;
             }
@@ -55,8 +54,8 @@ namespace DeepNestLib
         {
             get
             {
-                var maxy = Points.Max(z => z.y);
-                var miny = Points.Min(z => z.y);
+                double maxy = Points.Max(z => z.y);
+                double miny = Points.Min(z => z.y);
                 return maxy - miny;
             }
         }
@@ -104,7 +103,7 @@ namespace DeepNestLib
                 Id = value;
             }
         }
-        
+
         public double? offsetx;
         public double? offsety;
         public int? source = null;
@@ -128,14 +127,18 @@ namespace DeepNestLib
             get
             {
                 float ret = 0;
-                if (Points.Length < 3) return 0;
+                if (Points.Length < 3)
+                {
+                    return 0;
+                }
+
                 List<SvgPoint> pp = new List<SvgPoint>();
                 pp.AddRange(Points);
                 pp.Add(Points[0]);
                 for (int i = 1; i < pp.Count; i++)
                 {
-                    var s0 = pp[i - 1];
-                    var s1 = pp[i];
+                    SvgPoint s0 = pp[i - 1];
+                    SvgPoint s1 = pp[i];
                     ret += (float)(s0.x * s1.y - s0.y * s1.x);
                 }
                 return (float)Math.Abs(ret / 2);
