@@ -17,7 +17,7 @@ namespace DeepNestLib.Background
         internal void Insert(DbCacheKey obj, bool inner = false)
         {
             NfpCacheKey key = new NfpCacheKey(obj); // Create the new struct key
-            List<NFP> value = NestingService.CloneNfp(obj.nfp, inner).ToList();
+            List<NFP> value = NestingService.CloneNfp(obj.Nfp, inner).ToList();
             window.nfpCache.TryAdd(key, value);
         }
 

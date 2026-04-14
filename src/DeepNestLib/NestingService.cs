@@ -272,9 +272,10 @@ namespace DeepNestLib
                     B = B.Source.Value,
                     ARotation = 0,
                     BRotation = B.Rotation,
-                    //Inside =true??
+                    ARotationConstraint = A.RotationConstraint,
+                    BRotationConstraint = B.RotationConstraint
                 };
-                //var doc = window.db.find({ A: A.source, B: B.source, Arotation: 0, Brotation: B.rotation }, true);
+
                 NFP[] res = window.db.Find(key, true);
                 if (res != null)
                 {
@@ -342,7 +343,9 @@ namespace DeepNestLib
                     B = B.Source.Value,
                     ARotation = 0,
                     BRotation = B.Rotation,
-                    nfp = f.ToArray()
+                    ARotationConstraint = A.RotationConstraint,
+                    BRotationConstraint = B.RotationConstraint,
+                    Nfp = f.ToArray()
 
 
                 };
@@ -876,7 +879,9 @@ namespace DeepNestLib
                             A = A.Source.Value,
                             B = B.Source.Value,
                             ARotation = A.Rotation,
-                            BRotation = B.Rotation
+                            BRotation = B.Rotation,
+                            ARotationConstraint = A.RotationConstraint,
+                            BRotationConstraint = B.RotationConstraint,
                         };
 
                         if (!window.db.Has(doc))
@@ -916,8 +921,9 @@ namespace DeepNestLib
                             B = B.Source.Value,
 
                             ARotation = A.Rotation,
-                            BRotation = B.Rotation
-
+                            BRotation = B.Rotation,
+                            ARotationConstraint = A.RotationConstraint,
+                            BRotationConstraint = B.RotationConstraint
                         };
                         if (!Inpairs(key, pairs.ToArray()) && !window.db.Has(doc))
                         {
@@ -997,7 +1003,9 @@ namespace DeepNestLib
                 B = processed.Bsource,
                 ARotation = processed.ARotation,
                 BRotation = processed.BRotation,
-                nfp = new[] { processed.nfp }
+                ARotationConstraint = A.RotationConstraint,
+                BRotationConstraint = B.RotationConstraint,
+                Nfp = new[] { processed.nfp }
             };
 
             window.db.Insert(doc);
@@ -1230,6 +1238,8 @@ namespace DeepNestLib
                 B = B.Source,
                 ARotation = A.Rotation,
                 BRotation = B.Rotation,
+                ARotationConstraint = A.RotationConstraint,
+                BRotationConstraint = B.RotationConstraint
                 //Type = type
             };
 
@@ -1296,7 +1306,9 @@ namespace DeepNestLib
                     B = B.Source.Value,
                     ARotation = A.Rotation,
                     BRotation = B.Rotation,
-                    nfp = nfp
+                    ARotationConstraint = A.RotationConstraint,
+                    BRotationConstraint = B.RotationConstraint,
+                    Nfp = nfp
                 };
                 window.db.Insert(doc2);
 

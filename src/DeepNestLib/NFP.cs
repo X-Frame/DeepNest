@@ -16,7 +16,7 @@ namespace DeepNestLib
         public double? offsety;
         public int Length => Points?.Length ?? 0;
         public int? Source { get; set; }
-        public int? Id { get; set; }
+        public int Id { get; set; }
         public float Rotation { get; set; } = 0f;
         public RotationConstraint RotationConstraint { get; set; } = RotationConstraint.Fixed;
         public SvgPoint[] Points;
