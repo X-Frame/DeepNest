@@ -211,7 +211,7 @@ namespace DeepNestLib
 
             for (int i = 0; i < nfp.Length; i++)
             {
-                for (int j = 0; j < nfp[i].length; j++)
+                for (int j = 0; j < nfp[i].Length; j++)
                 {
                     if (AlmostEqual(p.x, nfp[i][j].x) && AlmostEqual(p.y, nfp[i][j].y))
                     {
@@ -350,18 +350,18 @@ namespace DeepNestLib
             double Aoffsetx = A.offsetx ?? 0;
             double Aoffsety = A.offsety ?? 0;
 
-            A = A.slice(0);
-            B = B.slice(0);
+            A = A.Slice(0);
+            B = B.Slice(0);
 
             // close the loop for polygons
-            if (A[0] != A[A.length - 1])
+            if (A[0] != A[A.Length - 1])
             {
-                A.push(A[0]);
+                A.Push(A[0]);
             }
 
-            if (B[0] != B[B.length - 1])
+            if (B[0] != B[B.Length - 1])
             {
-                B.push(B[0]);
+                B.Push(B[0]);
             }
 
             NFP edgeA = A;
@@ -372,12 +372,12 @@ namespace DeepNestLib
             double? d;
 
 
-            for (int i = 0; i < edgeB.length; i++)
+            for (int i = 0; i < edgeB.Length; i++)
             {
                 // the shortest/most negative projection of B onto A
                 double? minprojection = null;
                 SvgPoint minp = null;
-                for (int j = 0; j < edgeA.length - 1; j++)
+                for (int j = 0; j < edgeA.Length - 1; j++)
                 {
                     p = new SvgPoint(edgeB[i].x + Boffsetx, edgeB[i].y + Boffsety);
                     s1 = new SvgPoint(edgeA[j].x + Aoffsetx, edgeA[j].y + Aoffsety);
@@ -476,43 +476,43 @@ namespace DeepNestLib
             double Boffsetx = B.offsetx ?? 0;
             double Boffsety = B.offsety ?? 0;
 
-            A = A.slice(0);
-            B = B.slice(0);
+            A = A.Slice(0);
+            B = B.Slice(0);
 
-            for (int i = 0; i < A.length - 1; i++)
+            for (int i = 0; i < A.Length - 1; i++)
             {
-                for (int j = 0; j < B.length - 1; j++)
+                for (int j = 0; j < B.Length - 1; j++)
                 {
                     SvgPoint a1 = new SvgPoint(A[i].x + Aoffsetx, A[i].y + Aoffsety);
                     SvgPoint a2 = new SvgPoint(A[i + 1].x + Aoffsetx, A[i + 1].y + Aoffsety);
                     SvgPoint b1 = new SvgPoint(B[j].x + Boffsetx, B[j].y + Boffsety);
                     SvgPoint b2 = new SvgPoint(B[j + 1].x + Boffsetx, B[j + 1].y + Boffsety);
 
-                    int prevbindex = (j == 0) ? B.length - 1 : j - 1;
-                    int prevaindex = (i == 0) ? A.length - 1 : i - 1;
-                    int nextbindex = (j + 1 == B.length - 1) ? 0 : j + 2;
-                    int nextaindex = (i + 1 == A.length - 1) ? 0 : i + 2;
+                    int prevbindex = (j == 0) ? B.Length - 1 : j - 1;
+                    int prevaindex = (i == 0) ? A.Length - 1 : i - 1;
+                    int nextbindex = (j + 1 == B.Length - 1) ? 0 : j + 2;
+                    int nextaindex = (i + 1 == A.Length - 1) ? 0 : i + 2;
 
                     // go even further back if we happen to hit on a loop end point
                     if (B[prevbindex] == B[j] || (AlmostEqual(B[prevbindex].x, B[j].x) && AlmostEqual(B[prevbindex].y, B[j].y)))
                     {
-                        prevbindex = (prevbindex == 0) ? B.length - 1 : prevbindex - 1;
+                        prevbindex = (prevbindex == 0) ? B.Length - 1 : prevbindex - 1;
                     }
 
                     if (A[prevaindex] == A[i] || (AlmostEqual(A[prevaindex].x, A[i].x) && AlmostEqual(A[prevaindex].y, A[i].y)))
                     {
-                        prevaindex = (prevaindex == 0) ? A.length - 1 : prevaindex - 1;
+                        prevaindex = (prevaindex == 0) ? A.Length - 1 : prevaindex - 1;
                     }
 
                     // go even further forward if we happen to hit on a loop end point
                     if (B[nextbindex] == B[j + 1] || (AlmostEqual(B[nextbindex].x, B[j + 1].x) && AlmostEqual(B[nextbindex].y, B[j + 1].y)))
                     {
-                        nextbindex = (nextbindex == B.length - 1) ? 0 : nextbindex + 1;
+                        nextbindex = (nextbindex == B.Length - 1) ? 0 : nextbindex + 1;
                     }
 
                     if (A[nextaindex] == A[i + 1] || (AlmostEqual(A[nextaindex].x, A[i + 1].x) && AlmostEqual(A[nextaindex].y, A[i + 1].y)))
                     {
-                        nextaindex = (nextaindex == A.length - 1) ? 0 : nextaindex + 1;
+                        nextaindex = (nextaindex == A.Length - 1) ? 0 : nextaindex + 1;
                     }
 
                     SvgPoint a0 = new SvgPoint(A[prevaindex].x + Aoffsetx, A[prevaindex].y + Aoffsety);
@@ -657,32 +657,32 @@ namespace DeepNestLib
         public static SvgPoint SearchStartPoint(NFP A, NFP B, bool inside, NFP[] NFP = null)
         {
             // clone arrays
-            A = A.slice(0);
-            B = B.slice(0);
+            A = A.Slice(0);
+            B = B.Slice(0);
 
             // close the loop for polygons
-            if (A[0] != A[A.length - 1])
+            if (A[0] != A[A.Length - 1])
             {
-                A.push(A[0]);
+                A.Push(A[0]);
             }
 
-            if (B[0] != B[B.length - 1])
+            if (B[0] != B[B.Length - 1])
             {
-                B.push(B[0]);
+                B.Push(B[0]);
             }
 
-            for (int i = 0; i < A.length - 1; i++)
+            for (int i = 0; i < A.Length - 1; i++)
             {
                 if (!A[i].marked)
                 {
                     A[i].marked = true;
-                    for (int j = 0; j < B.length; j++)
+                    for (int j = 0; j < B.Length; j++)
                     {
                         B.offsetx = A[i].x - B[j].x;
                         B.offsety = A[i].y - B[j].y;
 
                         bool? Binside = null;
-                        for (int k = 0; k < B.length; k++)
+                        for (int k = 0; k < B.Length; k++)
                         {
                             bool? inpoly = PointInPolygon(new SvgPoint(B[k].x + B.offsetx.Value,
                                 B[k].y + B.offsety.Value), A);
@@ -754,7 +754,7 @@ namespace DeepNestLib
                         B.offsetx += vx;
                         B.offsety += vy;
 
-                        for (int k = 0; k < B.length; k++)
+                        for (int k = 0; k < B.Length; k++)
                         {
                             bool? inpoly = PointInPolygon(
                                 new SvgPoint(
@@ -987,18 +987,18 @@ namespace DeepNestLib
             Boffsetx = B.offsetx ?? 0;
             Boffsety = B.offsety ?? 0;
 
-            A = A.slice(0);
-            B = B.slice(0);
+            A = A.Slice(0);
+            B = B.Slice(0);
 
             // close the loop for polygons
-            if (A[0] != A[A.length - 1])
+            if (A[0] != A[A.Length - 1])
             {
-                A.push(A[0]);
+                A.Push(A[0]);
             }
 
-            if (B[0] != B[B.length - 1])
+            if (B[0] != B[B.Length - 1])
             {
-                B.push(B[0]);
+                B.Push(B[0]);
             }
 
             NFP edgeA = A;
@@ -1018,10 +1018,10 @@ namespace DeepNestLib
 
             SvgPoint reverse = new SvgPoint(-dir.x, -dir.y);
 
-            for (int i = 0; i < edgeB.length - 1; i++)
+            for (int i = 0; i < edgeB.Length - 1; i++)
             {
                 //var mind = null;
-                for (int j = 0; j < edgeA.length - 1; j++)
+                for (int j = 0; j < edgeA.Length - 1; j++)
                 {
                     A1 = new SvgPoint(
                          edgeA[j].x + Aoffsetx, edgeA[j].y + Aoffsety
@@ -1056,7 +1056,7 @@ namespace DeepNestLib
         // if the searchEdges flag is set, all edges of A are explored for NFPs - multiple 
         public static NFP[] NoFitPolygon(NFP A, NFP B, bool inside, bool searchEdges)
         {
-            if (A == null || A.length < 3 || B == null || B.length < 3)
+            if (A == null || A.Length < 3 || B == null || B.Length < 3)
             {
                 return null;
             }
@@ -1072,7 +1072,7 @@ namespace DeepNestLib
             double maxB = B[0].y;
             int maxBindex = 0;
 
-            for (i = 1; i < A.length; i++)
+            for (i = 1; i < A.Length; i++)
             {
                 A[i].marked = false;
                 if (A[i].y < minA)
@@ -1082,7 +1082,7 @@ namespace DeepNestLib
                 }
             }
 
-            for (i = 1; i < B.length; i++)
+            for (i = 1; i < B.Length; i++)
             {
                 B[i].marked = false;
                 if (B[i].y > maxB)
@@ -1120,7 +1120,7 @@ namespace DeepNestLib
 
                 NVector prevvector = null; // keep track of previous vector
                 NFP NFP = new NFP();
-                NFP.push(new SvgPoint(B[0].x + B.offsetx.Value, B[0].y + B.offsety.Value));
+                NFP.Push(new SvgPoint(B[0].x + B.offsetx.Value, B[0].y + B.offsety.Value));
 
                 double referencex = B[0].x + B.offsetx.Value;
                 double referencey = B[0].y + B.offsety.Value;
@@ -1128,16 +1128,16 @@ namespace DeepNestLib
                 double starty = referencey;
                 int counter = 0;
 
-                while (counter < 10 * (A.length + B.length))
+                while (counter < 10 * (A.Length + B.Length))
                 { // sanity check, prevent infinite loop
                     touching = new List<GeometryUtil.TouchingItem>();
                     // find touching vertices/edges
-                    for (i = 0; i < A.length; i++)
+                    for (i = 0; i < A.Length; i++)
                     {
-                        int nexti = (i == A.length - 1) ? 0 : i + 1;
-                        for (j = 0; j < B.length; j++)
+                        int nexti = (i == A.Length - 1) ? 0 : i + 1;
+                        for (j = 0; j < B.Length; j++)
                         {
-                            int nextj = (j == B.length - 1) ? 0 : j + 1;
+                            int nextj = (j == B.Length - 1) ? 0 : j + 1;
                             if (AlmostEqual(A[i].x, B[j].x + B.offsetx) && AlmostEqual(A[i].y, B[j].y + B.offsety))
                             {
                                 touching.Add(new TouchingItem(0, i, j));
@@ -1169,8 +1169,8 @@ namespace DeepNestLib
                         int prevAindex = touching[i].A - 1;
                         int nextAindex = touching[i].A + 1;
 
-                        prevAindex = (prevAindex < 0) ? A.length - 1 : prevAindex; // loop
-                        nextAindex = (nextAindex >= A.length) ? 0 : nextAindex; // loop
+                        prevAindex = (prevAindex < 0) ? A.Length - 1 : prevAindex; // loop
+                        nextAindex = (nextAindex >= A.Length) ? 0 : nextAindex; // loop
 
                         SvgPoint prevA = A[prevAindex];
                         SvgPoint nextA = A[nextAindex];
@@ -1181,8 +1181,8 @@ namespace DeepNestLib
                         int prevBindex = touching[i].B - 1;
                         int nextBindex = touching[i].B + 1;
 
-                        prevBindex = (prevBindex < 0) ? B.length - 1 : prevBindex; // loop
-                        nextBindex = (nextBindex >= B.length) ? 0 : nextBindex; // loop
+                        prevBindex = (prevBindex < 0) ? B.Length - 1 : prevBindex; // loop
+                        nextBindex = (nextBindex >= B.Length) ? 0 : nextBindex; // loop
 
                         SvgPoint prevB = B[prevBindex];
                         SvgPoint nextB = B[nextBindex];
@@ -1338,9 +1338,9 @@ namespace DeepNestLib
 
                     // if A and B start on a touching horizontal line, the end point may not be the start point
                     bool looped = false;
-                    if (NFP.length > 0)
+                    if (NFP.Length > 0)
                     {
-                        for (i = 0; i < NFP.length - 1; i++)
+                        for (i = 0; i < NFP.Length - 1; i++)
                         {
                             if (AlmostEqual(referencex, NFP[i].x) && AlmostEqual(referencey, NFP[i].y))
                             {
@@ -1355,7 +1355,7 @@ namespace DeepNestLib
                         break;
                     }
 
-                    NFP.push(new SvgPoint(
+                    NFP.Push(new SvgPoint(
                          referencex, referencey
                     ));
 
@@ -1365,7 +1365,7 @@ namespace DeepNestLib
                     counter++;
                 }
 
-                if (NFP != null && NFP.length > 0)
+                if (NFP != null && NFP.Length > 0)
                 {
                     NFPlist.Add(NFP);
 

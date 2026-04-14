@@ -49,18 +49,18 @@ namespace DeepNestLib
 
             for (int i = 0; i < Polygons.Count; i++)
             {
-                Polygons[i].id = i;
+                Polygons[i].Id = i;
             }
             for (int i = 0; i < Sheets.Count; i++)
             {
-                Sheets[i].id = i;
+                Sheets[i].Id = i;
             }
             foreach (NFP item in Polygons)
             {
                 cancellationToken.ThrowIfCancellationRequested();
                 NFP clone = new NFP();
-                clone.id = item.id;
-                clone.source = item.source;
+                clone.Id = item.Id;
+                clone.Source = item.Source;
                 clone.Points = item.Points.Select(z => new SvgPoint(z.x, z.y) { exact = z.exact }).ToArray();
                 if (item.children != null)
                 {
@@ -69,8 +69,8 @@ namespace DeepNestLib
                     {
                         clone.children.Add(new NFP());
                         NFP l = clone.children.Last();
-                        l.id = citem.id;
-                        l.source = citem.source;
+                        l.Id = citem.Id;
+                        l.Source = citem.Source;
                         l.Points = citem.Points.Select(z => new SvgPoint(z.x, z.y) { exact = z.exact }).ToArray();
                     }
                 }
@@ -82,8 +82,8 @@ namespace DeepNestLib
             {
                 cancellationToken.ThrowIfCancellationRequested();
                 NFP clone = new NFP();
-                clone.id = item.id;
-                clone.source = item.source;
+                clone.Id = item.Id;
+                clone.Source = item.Source;
                 clone.Points = item.Points.Select(z => new SvgPoint(z.x, z.y) { exact = z.exact }).ToArray();
                 if (item.children != null)
                 {
@@ -93,8 +93,8 @@ namespace DeepNestLib
                         cancellationToken.ThrowIfCancellationRequested();
                         clone.children.Add(new NFP());
                         NFP l = clone.children.Last();
-                        l.id = citem.id;
-                        l.source = citem.source;
+                        l.Id = citem.Id;
+                        l.Source = citem.Source;
                         l.Points = citem.Points.Select(z => new SvgPoint(z.x, z.y) { exact = z.exact }).ToArray();
                     }
                 }
@@ -103,7 +103,7 @@ namespace DeepNestLib
 
             if (offsetTreePhase)
             {
-                IGrouping<int?, NFP>[] grps = lpoly.GroupBy(z => z.source).ToArray();
+                IGrouping<int?, NFP>[] grps = lpoly.GroupBy(z => z.Source).ToArray();
                 if (NestingService.UseParallel)
                 {
                     Parallel.ForEach(grps, (item) =>
@@ -144,14 +144,14 @@ namespace DeepNestLib
 
 
             List<NestItem> partsLocal = new List<NestItem>();
-            IEnumerable<NestItem> p1 = lpoly.GroupBy(z => z.source).Select(z => new NestItem()
+            IEnumerable<NestItem> p1 = lpoly.GroupBy(z => z.Source).Select(z => new NestItem()
             {
                 Polygon = z.First(),
                 IsSheet = false,
                 Quanity = z.Count()
             });
 
-            IEnumerable<NestItem> p2 = lsheets.GroupBy(z => z.source).Select(z => new NestItem()
+            IEnumerable<NestItem> p2 = lsheets.GroupBy(z => z.Source).Select(z => new NestItem()
             {
                 Polygon = z.First(),
                 IsSheet = true,
@@ -164,7 +164,7 @@ namespace DeepNestLib
             int srcc = 0;
             foreach (NestItem item in partsLocal)
             {
-                item.Polygon.source = srcc++;
+                item.Polygon.Source = srcc++;
             }
 
             cancellationToken.ThrowIfCancellationRequested();
@@ -210,7 +210,7 @@ namespace DeepNestLib
                         sheetsIds.Add(sheetid);
                     }
 
-                    NFP sheet = Sheets.First(z => z.id == sheetid);
+                    NFP sheet = Sheets.First(z => z.Id == sheetid);
                     totalSheetsArea += GeometryUtil.PolygonArea(sheet);
 
                     foreach (PlacementItem ssitem in zitem.sheetplacements)
@@ -218,18 +218,18 @@ namespace DeepNestLib
                         cancellationToken.ThrowIfCancellationRequested();
 
                         PlacedPartsCount++;
-                        NFP poly = Polygons.First(z => z.id == ssitem.id);
+                        NFP poly = Polygons.First(z => z.Id == ssitem.id);
                         totalPartsArea += GeometryUtil.PolygonArea(poly);
                         placed.Add(poly);
                         poly.sheet = sheet;
                         poly.x = ssitem.x + sheet.x;
                         poly.y = ssitem.y + sheet.y;
-                        poly.rotation = ssitem.rotation;
+                        poly.Rotation = ssitem.rotation;
                     }
                 }
             }
 
-            NFP[] emptySheets = Sheets.Where(z => !sheetsIds.Contains(z.id)).ToArray();
+            NFP[] emptySheets = Sheets.Where(z => !sheetsIds.Contains(z.Id)).ToArray();
 
             MaterialUtilization = Math.Abs(totalPartsArea / totalSheetsArea);
 
@@ -271,7 +271,7 @@ namespace DeepNestLib
             tt.Name = "sheet" + (Sheets.Count + 1);
             Sheets.Add(tt);
 
-            tt.source = src;
+            tt.Source = src;
             tt.Height = h;
             tt.Width = w;
             tt.Rebuild();
@@ -352,7 +352,7 @@ namespace DeepNestLib
                     po.children.Add(r);
                 }
 
-                po.source = src;
+                po.Source = src;
                 Polygons.Add(po);
             }
             return po;
@@ -361,7 +361,7 @@ namespace DeepNestLib
         {
             if (Polygons.Any())
             {
-                return Polygons.Max(z => z.source.Value) + 1;
+                return Polygons.Max(z => z.Source.Value) + 1;
             }
             return 0;
         }
@@ -369,7 +369,7 @@ namespace DeepNestLib
         {
             if (Sheets.Any())
             {
-                return Sheets.Max(z => z.source.Value) + 1;
+                return Sheets.Max(z => z.Source.Value) + 1;
             }
             return 0;
         }
@@ -380,7 +380,7 @@ namespace DeepNestLib
             NFP pl = new NFP();
 
             Polygons.Add(pl);
-            pl.source = src;
+            pl.Source = src;
             pl.Points = new SvgPoint[] { };
             pl.AddPoint(new SvgPoint(xx, yy));
             pl.AddPoint(new SvgPoint(xx + ww, yy));

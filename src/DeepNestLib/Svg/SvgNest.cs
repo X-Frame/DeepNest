@@ -33,7 +33,7 @@ namespace DeepNestLib.Svg
         {
             List<InrangeItem> inrange = new List<InrangeItem>();
             // find closest points within 2 offset deltas
-            for (int j = 0; j < simple.length; j++)
+            for (int j = 0; j < simple.Length; j++)
             {
                 SvgPoint s = simple[j];
                 double d2 = (o.x - s.x) * (o.x - s.x) + (o.y - s.y) * (o.y - s.y);
@@ -65,7 +65,7 @@ namespace DeepNestLib.Svg
             else
             {
                 double? mind = null;
-                for (int j = 0; j < simple.length; j++)
+                for (int j = 0; j < simple.Length; j++)
                 {
                     SvgPoint s = simple[j];
                     double d2 = (o.x - s.x) * (o.x - s.x) + (o.y - s.y) * (o.y - s.y);
@@ -83,7 +83,7 @@ namespace DeepNestLib.Svg
         public static NFP Clone(NFP p)
         {
             NFP newp = new NFP();
-            for (int i = 0; i < p.length; i++)
+            for (int i = 0; i < p.Length; i++)
             {
                 newp.AddPoint(new SvgPoint(
 
@@ -109,7 +109,7 @@ namespace DeepNestLib.Svg
         public static bool Exterior(NFP simple, NFP complex, bool inside)
         {
             // find all protruding vertices
-            for (int i = 0; i < complex.length; i++)
+            for (int i = 0; i < complex.Length; i++)
             {
                 SvgPoint v = complex[i];
                 if (!inside && !PointInPolygon(v, simple) && Find(v, simple) == null)
@@ -147,7 +147,7 @@ namespace DeepNestLib.Svg
             }
 
             NFP cleaned = CleanPolygon2(polygon);
-            if (cleaned != null && cleaned.length > 1)
+            if (cleaned != null && cleaned.Length > 1)
             {
                 polygon = cleaned;
             }
@@ -156,12 +156,12 @@ namespace DeepNestLib.Svg
                 return polygon;
             }
             // polygon to polyline
-            NFP copy = polygon.slice(0);
-            copy.push(copy[0]);
+            NFP copy = polygon.Slice(0);
+            copy.Push(copy[0]);
             // mark all segments greater than ~0.25 in to be kept
             // the PD simplification algo doesn't care about the accuracy of long lines, only the absolute distance of each point
             // we care a great deal
-            for (i = 0; i < copy.length - 1; i++)
+            for (i = 0; i < copy.Length - 1; i++)
             {
                 SvgPoint p1 = copy[i];
                 SvgPoint p2 = copy[i + 1];
@@ -208,16 +208,16 @@ namespace DeepNestLib.Svg
             }
 
             // mark any points that are exact
-            for (i = 0; i < simple.length; i++)
+            for (i = 0; i < simple.Length; i++)
             {
                 NFP seg = new NFP();
                 seg.AddPoint(simple[i]);
-                seg.AddPoint(simple[i + 1 == simple.length ? 0 : i + 1]);
+                seg.AddPoint(simple[i + 1 == simple.Length ? 0 : i + 1]);
 
                 int? index1 = Find(seg[0], polygon);
                 int? index2 = Find(seg[1], polygon);
 
-                if (index1 + 1 == index2 || index2 + 1 == index1 || index1 == 0 && index2 == polygon.length - 1 || index2 == 0 && index1 == polygon.length - 1)
+                if (index1 + 1 == index2 || index2 + 1 == index1 || index1 == 0 && index2 == polygon.Length - 1 || index2 == 0 && index1 == polygon.Length - 1)
                 {
                     seg[0].exact = true;
                     seg[1].exact = true;
@@ -242,7 +242,7 @@ namespace DeepNestLib.Svg
                 return polygon;
             }
             // selective reversal of offset
-            for (i = 0; i < offset.length; i++)
+            for (i = 0; i < offset.Length; i++)
             {
                 SvgPoint o = offset[i];
                 SvgPoint target = GetTarget(o, simple, 2 * tolerance);
@@ -279,10 +279,10 @@ namespace DeepNestLib.Svg
                 }
             }
 
-            for (i = 0; i < offset.length; i++)
+            for (i = 0; i < offset.Length; i++)
             {
                 SvgPoint p1 = offset[i];
-                SvgPoint p2 = offset[i + 1 == offset.length ? 0 : i + 1];
+                SvgPoint p2 = offset[i + 1 == offset.Length ? 0 : i + 1];
 
                 double sqd = (p2.x - p1.x) * (p2.x - p1.x) + (p2.y - p1.y) * (p2.y - p1.y);
 
@@ -290,10 +290,10 @@ namespace DeepNestLib.Svg
                 {
                     continue;
                 }
-                for (j = 0; j < simple.length; j++)
+                for (j = 0; j < simple.Length; j++)
                 {
                     SvgPoint s1 = simple[j];
-                    SvgPoint s2 = simple[j + 1 == simple.length ? 0 : j + 1];
+                    SvgPoint s2 = simple[j + 1 == simple.Length ? 0 : j + 1];
 
                     double sqds = (p2.x - p1.x) * (p2.x - p1.x) + (p2.y - p1.y) * (p2.y - p1.y);
 
@@ -342,15 +342,15 @@ namespace DeepNestLib.Svg
             }
 
             cleaned = CleanPolygon2(offset);
-            if (cleaned != null && cleaned.length > 1)
+            if (cleaned != null && cleaned.Length > 1)
             {
                 offset = cleaned;
             }
 
             // mark any points that are exact (for line merge detection)
-            for (i = 0; i < offset.length; i++)
+            for (i = 0; i < offset.Length; i++)
             {
-                SvgPoint[] seg = new SvgPoint[] { offset[i], offset[i + 1 == offset.length ? 0 : i + 1] };
+                SvgPoint[] seg = new SvgPoint[] { offset[i], offset[i + 1 == offset.Length ? 0 : i + 1] };
                 int? index1 = Find(seg[0], polygon);
                 int? index2 = Find(seg[1], polygon);
                 if (index1 == null)
@@ -362,8 +362,8 @@ namespace DeepNestLib.Svg
                     index2 = 0;
                 }
                 if (index1 + 1 == index2 || index2 + 1 == index1
-                    || index1 == 0 && index2 == polygon.length - 1 ||
-                    index2 == 0 && index1 == polygon.length - 1)
+                    || index1 == 0 && index2 == polygon.Length - 1 ||
+                    index2 == 0 && index1 == polygon.Length - 1)
                 {
                     seg[0].exact = true;
                     seg[1].exact = true;
@@ -380,7 +380,7 @@ namespace DeepNestLib.Svg
         }
         public static int? Find(SvgPoint v, NFP p)
         {
-            for (int i = 0; i < p.length; i++)
+            for (int i = 0; i < p.Length; i++)
             {
                 if (GeometryUtil.WithinDistance(v, p[i], Config.CurveTolerance / 1000))
                 {
@@ -409,7 +409,7 @@ namespace DeepNestLib.Svg
 
                 List<SvgPoint> rett = new List<SvgPoint>();
                 rett.AddRange(offsetpaths[0].Points);
-                rett.AddRange(t.Points.Skip(t.length));
+                rett.AddRange(t.Points.Skip(t.Length));
                 t.Points = rett.ToArray();
             }
 
@@ -558,7 +558,7 @@ namespace DeepNestLib.Svg
 
             // remove duplicate endpoints
             SvgPoint start = cleaned[0];
-            SvgPoint end = cleaned[cleaned.length - 1];
+            SvgPoint end = cleaned[cleaned.Length - 1];
             if (start == end || GeometryUtil.AlmostEqual(start.x, end.x)
                 && GeometryUtil.AlmostEqual(start.y, end.y))
             {
@@ -703,8 +703,8 @@ namespace DeepNestLib.Svg
                         for (int j = 0; j < parts[i].Quanity; j++)
                         {
                             NFP poly = CloneTree(parts[i].Polygon); // deep copy
-                            poly.id = id; // id is the unique id of all parts that will be nested, including cloned duplicates
-                            poly.source = i; // source is the id of each unique part from the main part list
+                            poly.Id = id; // id is the unique id of all parts that will be nested, including cloned duplicates
+                            poly.Source = i; // source is the id of each unique part from the main part list
 
                             adam.Add(poly);
                             id++;
@@ -751,8 +751,8 @@ namespace DeepNestLib.Svg
                     for (int j = 0; j < parts[i].Quanity; j++)
                     {
                         NFP cln = CloneTree(poly);
-                        cln.id = sid; // id is the unique id of all parts that will be nested, including cloned duplicates
-                        cln.source = poly.source; // source is the id of each unique part from the main part list
+                        cln.Id = sid; // id is the unique id of all parts that will be nested, including cloned duplicates
+                        cln.Source = poly.Source; // source is the id of each unique part from the main part list
 
                         sheets.Add(cln);
                         sheetids.Add(sid);
@@ -777,8 +777,8 @@ namespace DeepNestLib.Svg
 
                     for (int j = 0; j < ga.Population[i].placements.Count; j++)
                     {
-                        int id = ga.Population[i].placements[j].id;
-                        int? source = ga.Population[i].placements[j].source;
+                        int id = ga.Population[i].placements[j].Id;
+                        int? source = ga.Population[i].placements[j].Source;
                         List<NFP> child = ga.Population[i].placements[j].children;
                         ids.Add(id);
                         sources.Add(source.Value);
@@ -809,7 +809,7 @@ namespace DeepNestLib.Svg
         public static IntPoint[] ToClipperCoordinates(NFP polygon)
         {
             List<IntPoint> clone = new List<IntPoint>();
-            for (int i = 0; i < polygon.length; i++)
+            for (int i = 0; i < polygon.Length; i++)
             {
                 clone.Add
                     (new IntPoint(

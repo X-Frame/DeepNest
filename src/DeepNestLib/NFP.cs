@@ -1,4 +1,5 @@
-﻿using DeepNestLib.Svg;
+﻿using DeepNestLib.Rotation;
+using DeepNestLib.Svg;
 using System;
 using System.Collections.Generic;
 using System.Linq;
@@ -7,19 +8,30 @@ namespace DeepNestLib
 {
     public class NFP : IStringify
     {
+        public string Name { get; set; }
+        public SvgPoint this[int index] => Points[index];
+        public List<NFP> children = null;
+
+        public double? offsetx;
+        public double? offsety;
+        public int Length => Points?.Length ?? 0;
+        public int? Source { get; set; }
+        public int? Id { get; set; }
+        public float Rotation { get; set; } = 0f;
+        public RotationConstraint RotationConstraint { get; set; } = RotationConstraint.Fixed;
+        public SvgPoint[] Points;
         public bool fitted { get { return sheet != null; } }
         public NFP sheet;
         public override string ToString()
         {
             string str1 = (Points != null) ? Points.Count() + "" : "null";
-            return $"nfp: id: {id}; source: {source}; rotation: {rotation}; points: {str1}";
+            return $"nfp: id: {Id}; source: {Source}; rotation: {Rotation}; points: {str1}";
         }
         public NFP()
         {
-            Points = new SvgPoint[] { };
+            Points = [];
         }
 
-        public string Name { get; set; }
         public void AddPoint(SvgPoint point)
         {
             List<SvgPoint> list = Points.ToList();
@@ -31,7 +43,7 @@ namespace DeepNestLib
         public bool isBin;
 
         #endregion
-        public void reverse()
+        public void Reverse()
         {
             Points = Points.Reverse().ToArray();
         }
@@ -60,68 +72,6 @@ namespace DeepNestLib
             }
         }
 
-        public SvgPoint this[int ind]
-        {
-            get
-            {
-                return Points[ind];
-            }
-        }
-
-        public List<NFP> children;
-
-
-
-
-        public int Length
-        {
-            get
-            {
-                return Points.Length;
-            }
-        }
-
-        //public float? width;
-        //public float? height;
-        public int length
-        {
-            get
-            {
-                return Points.Length;
-            }
-        }
-
-        public int Id;
-        public int id
-        {
-            get
-            {
-                return Id;
-            }
-            set
-            {
-                Id = value;
-            }
-        }
-
-        public double? offsetx;
-        public double? offsety;
-        public int? source = null;
-        public float Rotation;
-
-
-        public float rotation
-        {
-            get
-            {
-                return Rotation;
-            }
-            set
-            {
-                Rotation = value;
-            }
-        }
-        public SvgPoint[] Points;
         public float Area
         {
             get
@@ -145,7 +95,7 @@ namespace DeepNestLib
             }
         }
 
-        internal void push(SvgPoint svgPoint)
+        internal void Push(SvgPoint svgPoint)
         {
             List<SvgPoint> points = new List<SvgPoint>();
             if (Points == null)
@@ -158,11 +108,11 @@ namespace DeepNestLib
 
         }
 
-        public NFP slice(int v)
+        public NFP Slice(int v)
         {
-            var ret = new NFP();
+            NFP ret = new NFP();
             List<SvgPoint> pp = new List<SvgPoint>();
-            for (int i = v; i < length; i++)
+            for (int i = v; i < Length; i++)
             {
                 pp.Add(new SvgPoint(this[i].x, this[i].y));
 

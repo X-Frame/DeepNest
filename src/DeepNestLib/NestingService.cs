@@ -2,6 +2,7 @@
 using DeepNestLib.Background;
 using DeepNestLib.GeometryUtilities;
 using DeepNestLib.NoFitPolygon;
+using DeepNestLib.Rotation;
 using DeepNestLib.Sheets;
 using DeepNestLib.Svg;
 using Minkowski;
@@ -27,7 +28,7 @@ namespace DeepNestLib
         public static NFP ShiftPolygon(NFP p, PlacementItem shift)
         {
             NFP shifted = new NFP();
-            for (int i = 0; i < p.length; i++)
+            for (int i = 0; i < p.Length; i++)
             {
                 shifted.AddPoint(new SvgPoint(p[i].x + shift.x, p[i].y + shift.y) { exact = p[i].exact });
             }
@@ -70,7 +71,7 @@ namespace DeepNestLib
         public static NFP Clone(NFP nfp)
         {
             NFP newnfp = new();
-            for (int i = 0; i < nfp.length; i++)
+            for (int i = 0; i < nfp.Length; i++)
             {
                 newnfp.AddPoint(new SvgPoint(nfp[i].x, nfp[i].y));
             }
@@ -82,7 +83,7 @@ namespace DeepNestLib
                 {
                     NFP child = nfp.children[i];
                     NFP newchild = new NFP();
-                    for (int j = 0; j < child.length; j++)
+                    for (int j = 0; j < child.Length; j++)
                     {
                         newchild.AddPoint(new SvgPoint(child[j].x, child[j].y));
                     }
@@ -99,7 +100,7 @@ namespace DeepNestLib
         public static ConcurrentDictionary<string, NFP[]> cacheProcess = new ConcurrentDictionary<string, NFP[]>();
         public static NFP[] Process2(NFP A, NFP B, int type)
         {
-            string key = A.source + ";" + B.source + ";" + A.rotation + ";" + B.rotation;
+            string key = A.Source + ";" + B.Source + ";" + A.Rotation + ";" + B.Rotation;
             bool cacheAllow = type != 1;
             if (cacheAllow && cacheProcess.TryGetValue(key, out NFP[]? cachedValue))
             {
@@ -247,30 +248,30 @@ namespace DeepNestLib
             bounds.y -= 0.5 * (bounds.height - (bounds.height / 1.1));
 
             NFP frame = new NFP();
-            frame.push(new SvgPoint(bounds.x, bounds.y));
-            frame.push(new SvgPoint(bounds.x + bounds.width, bounds.y));
-            frame.push(new SvgPoint(bounds.x + bounds.width, bounds.y + bounds.height));
-            frame.push(new SvgPoint(bounds.x, bounds.y + bounds.height));
+            frame.Push(new SvgPoint(bounds.x, bounds.y));
+            frame.Push(new SvgPoint(bounds.x + bounds.width, bounds.y));
+            frame.Push(new SvgPoint(bounds.x + bounds.width, bounds.y + bounds.height));
+            frame.Push(new SvgPoint(bounds.x, bounds.y + bounds.height));
 
 
             frame.children = new List<NFP>() { (NFP)A };
-            frame.source = A.source;
-            frame.rotation = 0;
+            frame.Source = A.Source;
+            frame.Rotation = 0;
 
             return frame;
         }
 
         public static NFP[] GetInnerNfp(NFP A, NFP B, int type, SvgNestConfig config)
         {
-            if (A.source != null && B.source != null)
+            if (A.Source != null && B.Source != null)
             {
 
                 DbCacheKey key = new DbCacheKey()
                 {
-                    A = A.source.Value,
-                    B = B.source.Value,
+                    A = A.Source.Value,
+                    B = B.Source.Value,
                     ARotation = 0,
-                    BRotation = B.rotation,
+                    BRotation = B.Rotation,
                     //Inside =true??
                 };
                 //var doc = window.db.find({ A: A.source, B: B.source, Arotation: 0, Brotation: B.rotation }, true);
@@ -332,15 +333,15 @@ namespace DeepNestLib
                 f.Add(ToNestCoordinates(finalNfp[i].ToArray(), config.ClipperScale));
             }
 
-            if (A.source != null && B.source != null)
+            if (A.Source != null && B.Source != null)
             {
                 // insert into db
                 DbCacheKey doc = new DbCacheKey()
                 {
-                    A = A.source.Value,
-                    B = B.source.Value,
+                    A = A.Source.Value,
+                    B = B.Source.Value,
                     ARotation = 0,
-                    BRotation = B.rotation,
+                    BRotation = B.Rotation,
                     nfp = f.ToArray()
 
 
@@ -356,8 +357,8 @@ namespace DeepNestLib
             NFP rotated = new NFP();
 
             double angle = degrees * Math.PI / 180;
-            List<SvgPoint> pp = new List<SvgPoint>(polygon.length);
-            for (int i = 0; i < polygon.length; i++)
+            List<SvgPoint> pp = new List<SvgPoint>(polygon.Length);
+            for (int i = 0; i < polygon.Length; i++)
             {
                 double x = polygon[i].x;
                 double y = polygon[i].y;
@@ -390,44 +391,43 @@ namespace DeepNestLib
             int i, j, k, m, n;
             double totalsheetarea = 0;
 
-            NFP part = null;
             // total length of merged lines
             double totalMerged = 0;
 
             // rotate paths by given rotation
-            List<NFP> rotated = new List<NFP>();
+            List<NFP> rotatedParts = [];
             for (i = 0; i < parts.Length; i++)
             {
-                NFP r = RotatePolygon(parts[i], parts[i].rotation);
-                r.Rotation = parts[i].rotation;
-                r.source = parts[i].source;
-                r.Id = parts[i].Id;
-                rotated.Add(r);
+                NFP originalPart = parts[i];
+                NFP rotatedPart = RotatePolygon(originalPart, originalPart.Rotation);
+                rotatedPart.Rotation = originalPart.Rotation;
+                rotatedPart.Source = originalPart.Source;
+                rotatedPart.Id = originalPart.Id;
+                rotatedPart.RotationConstraint = originalPart.RotationConstraint;
+                rotatedParts.Add(rotatedPart);
             }
 
-            parts = rotated.ToArray();
+            parts = rotatedParts.ToArray();
 
-            List<SheetPlacementItem> allplacements = new List<SheetPlacementItem>();
+            List<SheetPlacementItem> allplacements = [];
 
             double fitness = 0;
             NFP nfp;
             double sheetarea = -1;
             int totalPlaced = 0;
-            int totalParts = parts.Count();
+            int totalParts = parts.Length;
+
             while (parts.Length > 0)
             {
                 cancellationToken.ThrowIfCancellationRequested(); // Check for cancellation at the start of each sheet placement
 
-                List<NFP> placed = new List<NFP>();
+                List<NFP> placed = [];
+                List<PlacementItem> placements = [];
 
-                List<PlacementItem> placements = new List<PlacementItem>();
-
-                // open a new sheet
                 NFP sheet = sheets.First();
                 sheets = sheets.Skip(1).ToArray();
                 sheetarea = Math.Abs(GeometryUtil.PolygonArea(sheet));
                 totalsheetarea += sheetarea;
-
                 fitness += sheetarea; // add 1 for each new sheet opened (lower fitness is better)
 
                 string clipkey = "";
@@ -439,49 +439,38 @@ namespace DeepNestLib
                 double? minwidth = null;
                 PlacementItem position = null;
                 double? minarea = null;
+
                 for (i = 0; i < parts.Length; i++)
                 {
                     cancellationToken.ThrowIfCancellationRequested(); // Check for cancellation for each part
                     float prog = 0.66f + 0.34f * (totalPlaced / (float)totalParts);
                     DisplayProgress(prog);
 
-                    part = parts[i];
+                    NFP part = parts[i];
+
                     // inner NFP
                     NFP[] sheetNfp = null;
-                    // try all possible rotations until it fits
-                    // (only do this for the first part of each sheet, to ensure that all parts that can be placed are, even if we have to to open a lot of sheets)
-                    for (j = 0; j < (360f / config.Rotations); j++)
+                    bool canPlace = false;
+
+                    List<float> allowedAngles = RotationHelpers.GetAllowedRotation(part);
+
+                    foreach (float angle in allowedAngles)
                     {
-                        sheetNfp = GetInnerNfp(sheet, part, 0, config);
+                        NFP rotatedPart = RotatePolygon(part, angle);
+                        rotatedPart.Rotation = angle;
+                        rotatedPart.Source = part.Source;
+                        rotatedPart.Id = part.Id;
+                        rotatedPart.RotationConstraint = part.RotationConstraint;
 
-                        if (sheetNfp != null && sheetNfp.Count() > 0)
+                        sheetNfp = GetInnerNfp(sheet, rotatedPart, 0, config);
+                        if (sheetNfp != null && sheetNfp.Length > 0 && sheetNfp[0].Length > 0)
                         {
-                            if (sheetNfp[0].length == 0)
-                            {
-                                throw new ArgumentException();
-                            }
-                            else
-                            {
-                                break;
-                            }
-                        }
-
-                        NFP r = RotatePolygon(part, 360f / config.Rotations);
-                        r.rotation = part.rotation + (360f / config.Rotations);
-                        r.source = part.source;
-                        r.id = part.id;
-
-                        // rotation is not in-place
-                        part = r;
-                        parts[i] = r;
-
-                        if (part.rotation > 360f)
-                        {
-                            part.rotation = part.rotation % 360f;
+                            part = rotatedPart;           // Use this rotation
+                            parts[i] = rotatedPart;       // Update in the array
+                            break;
                         }
                     }
-                    // part unplaceable, skip
-                    if (sheetNfp == null || sheetNfp.Count() == 0)
+                    if (!canPlace || sheetNfp == null || sheetNfp.Length == 0)
                     {
                         continue;
                     }
@@ -493,7 +482,7 @@ namespace DeepNestLib
                         // first placement, put it on the top left corner
                         for (j = 0; j < sheetNfp.Count(); j++)
                         {
-                            for (k = 0; k < sheetNfp[j].length; k++)
+                            for (k = 0; k < sheetNfp[j].Length; k++)
                             {
                                 if (position == null ||
                                     ((sheetNfp[j][k].x - part[0].x) < position.x) ||
@@ -506,9 +495,9 @@ namespace DeepNestLib
                                     {
                                         x = sheetNfp[j][k].x - part[0].x,
                                         y = sheetNfp[j][k].y - part[0].y,
-                                        id = part.id,
-                                        rotation = part.rotation,
-                                        source = part.source.Value
+                                        id = part.Id,
+                                        rotation = part.Rotation,
+                                        source = part.Source.Value
 
                                     };
 
@@ -537,7 +526,7 @@ namespace DeepNestLib
                     error = false;
 
                     // check if stored in clip cache
-                    clipkey = "s:" + part.source + "r:" + part.rotation;
+                    clipkey = "s:" + part.Source + "r:" + part.Rotation;
                     int startindex = 0;
                     if (EnableCaches && clipCache.ContainsKey(clipkey))
                     {
@@ -556,7 +545,7 @@ namespace DeepNestLib
                             break;
                         }
                         // shift to placed location
-                        for (m = 0; m < nfp.length; m++)
+                        for (m = 0; m < nfp.Length; m++)
                         {
                             nfp[m].x += placements[j].x;
                             nfp[m].y += placements[j].y;
@@ -565,7 +554,7 @@ namespace DeepNestLib
                         {
                             for (n = 0; n < nfp.children.Count; n++)
                             {
-                                for (int o = 0; o < nfp.children[n].length; o++)
+                                for (int o = 0; o < nfp.children[n].Length; o++)
                                 {
                                     nfp.children[n][o].x += placements[j].x;
                                     nfp.children[n][o].y += placements[j].y;
@@ -635,7 +624,7 @@ namespace DeepNestLib
                     NFP allpoints = new NFP();
                     for (m = 0; m < placed.Count; m++)
                     {
-                        for (n = 0; n < placed[m].length; n++)
+                        for (n = 0; n < placed[m].Length; n++)
                         {
                             allpoints.AddPoint(
                                 new SvgPoint(
@@ -650,7 +639,7 @@ namespace DeepNestLib
                         allbounds = GeometryUtil.GetPolygonBounds(allpoints);
 
                         NFP partpoints = new NFP();
-                        for (m = 0; m < part.length; m++)
+                        for (m = 0; m < part.Length; m++)
                         {
                             partpoints.AddPoint(new SvgPoint(part[m].x, part[m].y));
                         }
@@ -663,15 +652,15 @@ namespace DeepNestLib
                     for (j = 0; j < finalNfp.Count; j++)
                     {
                         nf = finalNfp[j];
-                        for (k = 0; k < nf.length; k++)
+                        for (k = 0; k < nf.Length; k++)
                         {
                             shiftvector = new PlacementItem()
                             {
-                                id = part.id,
+                                id = part.Id,
                                 x = nf[k].x - part[0].x,
                                 y = nf[k].y - part[0].y,
-                                source = part.source.Value,
-                                rotation = part.rotation
+                                source = part.Source.Value,
+                                rotation = part.Rotation
                             };
                             PolygonBounds rectbounds = null;
                             if (config.PlacementType == PlacementTypeEnum.gravity || config.PlacementType == PlacementTypeEnum.box)
@@ -702,7 +691,7 @@ namespace DeepNestLib
                                 // must be convex hull
                                 NFP localpoints = Clone(allpoints);
 
-                                for (m = 0; m < part.length; m++)
+                                for (m = 0; m < part.Length; m++)
                                 {
                                     localpoints.AddPoint(new SvgPoint(part[m].x + shiftvector.x, part[m].y + shiftvector.y));
                                 }
@@ -787,8 +776,8 @@ namespace DeepNestLib
                 {
                     allplacements.Add(new SheetPlacementItem()
                     {
-                        sheetId = sheet.id,
-                        sheetSource = sheet.source.Value,
+                        sheetId = sheet.Id,
+                        sheetSource = sheet.Source.Value,
                         sheetplacements = placements
                     });
                 }
@@ -866,7 +855,7 @@ namespace DeepNestLib
             {
                 ConcurrentBag<NfpPair> concurrentPairs = new ConcurrentBag<NfpPair>();
 
-                Parallel.For(0, parts.Count, i =>
+                Parallel.For(0, parts.Count, (Action<int>)(i =>
                 {
                     cancellationToken.ThrowIfCancellationRequested();
                     NFP B = parts[i];
@@ -877,17 +866,17 @@ namespace DeepNestLib
                         {
                             A = A,
                             B = B,
-                            ARotation = A.rotation,
-                            BRotation = B.rotation,
-                            Asource = A.source.Value,
-                            Bsource = B.source.Value
+                            ARotation = A.Rotation,
+                            BRotation = B.Rotation,
+                            Asource = A.Source.Value,
+                            Bsource = B.Source.Value
                         };
                         DbCacheKey doc = new DbCacheKey()
                         {
-                            A = A.source.Value,
-                            B = B.source.Value,
-                            ARotation = A.rotation,
-                            BRotation = B.rotation
+                            A = A.Source.Value,
+                            B = B.Source.Value,
+                            ARotation = A.Rotation,
+                            BRotation = B.Rotation
                         };
 
                         if (!window.db.Has(doc))
@@ -895,7 +884,7 @@ namespace DeepNestLib
                             concurrentPairs.Add(key);
                         }
                     }
-                });
+                }));
 
                 pairs = concurrentPairs
                     .GroupBy(p => new { p.Asource, p.Bsource, p.ARotation, p.BRotation })
@@ -915,19 +904,19 @@ namespace DeepNestLib
                         {
                             A = A,
                             B = B,
-                            ARotation = A.rotation,
-                            BRotation = B.rotation,
-                            Asource = A.source.Value,
-                            Bsource = B.source.Value
+                            ARotation = A.Rotation,
+                            BRotation = B.Rotation,
+                            Asource = A.Source.Value,
+                            Bsource = B.Source.Value
 
                         };
                         DbCacheKey doc = new DbCacheKey()
                         {
-                            A = A.source.Value,
-                            B = B.source.Value,
+                            A = A.Source.Value,
+                            B = B.Source.Value,
 
-                            ARotation = A.rotation,
-                            BRotation = B.rotation
+                            ARotation = A.Rotation,
+                            BRotation = B.Rotation
 
                         };
                         if (!Inpairs(key, pairs.ToArray()) && !window.db.Has(doc))
@@ -954,7 +943,7 @@ namespace DeepNestLib
         {
             for (int k = 0; k < parts.Count; k++)
             {
-                if (parts[k].source == source)
+                if (parts[k].Source == source)
                 {
                     return parts[k];
                 }
@@ -1131,7 +1120,7 @@ namespace DeepNestLib
                 }
             }
 
-            for (int i = 0; i < clipperNfp.length; i++)
+            for (int i = 0; i < clipperNfp.Length; i++)
             {
                 clipperNfp[i].x += B[0].x;
                 clipperNfp[i].y += B[0].y;
@@ -1159,8 +1148,8 @@ namespace DeepNestLib
         }
         public static NFP getHull(NFP polygon)
         {
-            double[][] points = new double[polygon.length][];
-            for (int i = 0; i < polygon.length; i++)
+            double[][] points = new double[polygon.Length][];
+            for (int i = 0; i < polygon.Length; i++)
             {
                 points[i] = (new double[] { polygon[i].x, polygon[i].y });
             }
@@ -1194,7 +1183,7 @@ namespace DeepNestLib
                 {
                     if (GeometryUtil.PolygonArea(nfp.children[j]) < 0)
                     {
-                        nfp.children[j].reverse();
+                        nfp.children[j].Reverse();
                     }
                     //var childNfp = SvgNest.toClipperCoordinates(nfp.children[j]);
                     IntPoint[] childNfp = ClipperHelper.ScaleUpPaths(nfp.children[j], config.ClipperScale);
@@ -1204,7 +1193,7 @@ namespace DeepNestLib
 
             if (GeometryUtil.PolygonArea(nfp) > 0)
             {
-                nfp.reverse();
+                nfp.Reverse();
             }
 
             // clipper js defines holes based on orientation
@@ -1237,10 +1226,10 @@ namespace DeepNestLib
 
             DbCacheKey key = new DbCacheKey()
             {
-                A = A.source,
-                B = B.source,
-                ARotation = A.rotation,
-                BRotation = B.rotation,
+                A = A.Source,
+                B = B.Source,
+                ARotation = A.Rotation,
+                BRotation = B.Rotation,
                 //Type = type
             };
 
@@ -1279,7 +1268,7 @@ namespace DeepNestLib
                     }
                 }
 
-                for (int i = 0; i < clipperNfp.length; i++)
+                for (int i = 0; i < clipperNfp.Length; i++)
                 {
                     clipperNfp[i].x += B[0].x;
                     clipperNfp[i].y += B[0].y;
@@ -1299,14 +1288,14 @@ namespace DeepNestLib
             {
                 return null;
             }
-            if (!inside && A.source != null && B.source != null)
+            if (!inside && A.Source != null && B.Source != null)
             {
                 DbCacheKey doc2 = new DbCacheKey()
                 {
-                    A = A.source.Value,
-                    B = B.source.Value,
-                    ARotation = A.rotation,
-                    BRotation = B.rotation,
+                    A = A.Source.Value,
+                    B = B.Source.Value,
+                    ARotation = A.Rotation,
+                    BRotation = B.Rotation,
                     nfp = nfp
                 };
                 window.db.Insert(doc2);
