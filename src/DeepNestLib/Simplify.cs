@@ -1,9 +1,4 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-
-namespace DeepNestLib
+﻿namespace DeepNestLib
 {
     public class Simplify
     {
@@ -15,8 +10,8 @@ namespace DeepNestLib
         public static double getSqDist(SvgPoint p1, SvgPoint p2)
         {
 
-            var dx = p1.x - p2.x;
-            var dy = p1.y - p2.y;
+            double dx = p1.x - p2.x;
+            double dy = p1.y - p2.y;
 
             return dx * dx + dy * dy;
         }
@@ -25,15 +20,15 @@ namespace DeepNestLib
         public static double getSqSegDist(SvgPoint p, SvgPoint p1, SvgPoint p2)
         {
 
-            var x = p1.x;
-            var y = p1.y;
-            var dx = p2.x - x;
-            var dy = p2.y - y;
+            double x = p1.x;
+            double y = p1.y;
+            double dx = p2.x - x;
+            double dy = p2.y - y;
 
             if (dx != 0 || dy != 0)
             {
 
-                var t = ((p.x - x) * dx + (p.y - y) * dy) / (dx * dx + dy * dy);
+                double t = ((p.x - x) * dx + (p.y - y) * dy) / (dx * dx + dy * dy);
 
                 if (t > 1)
                 {
@@ -59,13 +54,13 @@ namespace DeepNestLib
         public static NFP simplifyRadialDist(NFP points, double? sqTolerance)
         {
 
-            var prevPoint = points[0];
-            var newPoints = new NFP();
+            SvgPoint prevPoint = points[0];
+            NFP newPoints = new NFP();
             newPoints.AddPoint(prevPoint);
 
             SvgPoint point = null;
             int i = 1;
-            for (var len = points.length; i < len; i++)
+            for (int len = points.length; i < len; i++)
             {
                 point = points[i];
 
@@ -76,49 +71,52 @@ namespace DeepNestLib
                 }
             }
 
-            if (prevPoint != point) newPoints.AddPoint(point);
+            if (prevPoint != point)
+            {
+                newPoints.AddPoint(point);
+            }
+
             return newPoints;
         }
 
 
         public static void simplifyDPStep(NFP points, int first, int last, double? sqTolerance, NFP simplified)
         {
-            var maxSqDist = sqTolerance;
-            var index = -1;
-            var marked = false;
-            for (var i = first + 1; i < last; i++)
+            double? maxSqDist = sqTolerance;
+            int index = -1;
+            bool marked = false;
+            for (int i = first + 1; i < last; i++)
             {
-                var sqDist = getSqSegDist(points[i], points[first], points[last]);
+                double sqDist = getSqSegDist(points[i], points[first], points[last]);
 
                 if (sqDist > maxSqDist)
                 {
                     index = i;
                     maxSqDist = sqDist;
                 }
-                /*if(points[i].marked && maxSqDist <= sqTolerance){
-                    index = i;
-                    marked = true;
-                }*/
             }
-
-            /*if(!points[index] && maxSqDist > sqTolerance){
-                console.log('shit shit shit');
-            }*/
 
             if (maxSqDist > sqTolerance || marked)
             {
-                if (index - first > 1) simplifyDPStep(points, first, index, sqTolerance, simplified);
+                if (index - first > 1)
+                {
+                    simplifyDPStep(points, first, index, sqTolerance, simplified);
+                }
+
                 simplified.push(points[index]);
-                if (last - index > 1) simplifyDPStep(points, index, last, sqTolerance, simplified);
+                if (last - index > 1)
+                {
+                    simplifyDPStep(points, index, last, sqTolerance, simplified);
+                }
             }
         }
 
         // simplification using Ramer-Douglas-Peucker algorithm
         public static NFP simplifyDouglasPeucker(NFP points, double? sqTolerance)
         {
-            var last = points.length - 1;
+            int last = points.length - 1;
 
-            var simplified = new NFP();
+            NFP simplified = new NFP();
             simplified.AddPoint(points[0]);
             simplifyDPStep(points, 0, last, sqTolerance, simplified);
             simplified.push(points[last]);
@@ -130,9 +128,12 @@ namespace DeepNestLib
         public static NFP simplify(NFP points, double? tolerance, bool highestQuality)
         {
 
-            if (points.length <= 2) return points;
+            if (points.length <= 2)
+            {
+                return points;
+            }
 
-            var sqTolerance = (tolerance != null) ? (tolerance * tolerance) : 1;
+            double? sqTolerance = (tolerance != null) ? (tolerance * tolerance) : 1;
 
             points = highestQuality ? points : simplifyRadialDist(points, sqTolerance);
             points = simplifyDouglasPeucker(points, sqTolerance);
