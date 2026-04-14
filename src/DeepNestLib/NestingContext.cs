@@ -1,4 +1,5 @@
-﻿using System;
+﻿using DeepNestLib.Background;
+using System;
 using System.Collections.Concurrent;
 using System.Collections.Generic;
 using System.IO;
@@ -31,11 +32,11 @@ namespace DeepNestLib
         {
             current = null;
             Nest = new SvgNest(_config);
-            Background.cacheProcess = new ConcurrentDictionary<string, NFP[]>();
-            Background.window = new windowUnk();
-            Background.callCounter = 0;
+            NestingService.cacheProcess = new ConcurrentDictionary<string, NFP[]>();
+            NestingService.window = new WindowUnk();
+            NestingService.callCounter = 0;
             Iterations = 0;
-            Background.UseParallel = _config.UseParallel;
+            NestingService.UseParallel = _config.UseParallel;
         }
 
         bool offsetTreePhase = true;
@@ -52,7 +53,7 @@ namespace DeepNestLib
             {
                 Sheets[i].id = i;
             }
-            foreach (var item in Polygons)
+            foreach (NFP item in Polygons)
             {
                 cancellationToken.ThrowIfCancellationRequested();
                 NFP clone = new NFP();
@@ -62,10 +63,10 @@ namespace DeepNestLib
                 if (item.children != null)
                 {
                     clone.children = new List<NFP>();
-                    foreach (var citem in item.children)
+                    foreach (NFP citem in item.children)
                     {
                         clone.children.Add(new NFP());
-                        var l = clone.children.Last();
+                        NFP l = clone.children.Last();
                         l.id = citem.id;
                         l.source = citem.source;
                         l.Points = citem.Points.Select(z => new SvgPoint(z.x, z.y) { exact = z.exact }).ToArray();
@@ -75,7 +76,7 @@ namespace DeepNestLib
             }
 
 
-            foreach (var item in Sheets)
+            foreach (NFP item in Sheets)
             {
                 cancellationToken.ThrowIfCancellationRequested();
                 NFP clone = new NFP();
@@ -85,11 +86,11 @@ namespace DeepNestLib
                 if (item.children != null)
                 {
                     clone.children = new List<NFP>();
-                    foreach (var citem in item.children)
+                    foreach (NFP citem in item.children)
                     {
                         cancellationToken.ThrowIfCancellationRequested();
                         clone.children.Add(new NFP());
-                        var l = clone.children.Last();
+                        NFP l = clone.children.Last();
                         l.id = citem.id;
                         l.source = citem.source;
                         l.Points = citem.Points.Select(z => new SvgPoint(z.x, z.y) { exact = z.exact }).ToArray();
@@ -100,14 +101,14 @@ namespace DeepNestLib
 
             if (offsetTreePhase)
             {
-                var grps = lpoly.GroupBy(z => z.source).ToArray();
-                if (Background.UseParallel)
+                IGrouping<int?, NFP>[] grps = lpoly.GroupBy(z => z.source).ToArray();
+                if (NestingService.UseParallel)
                 {
                     Parallel.ForEach(grps, (item) =>
                     {
                         cancellationToken.ThrowIfCancellationRequested();
                         SvgNest.offsetTree(item.First(), 0.5 * SvgNest.Config.Spacing, SvgNest.Config, cancellationToken);
-                        foreach (var zitem in item)
+                        foreach (NFP? zitem in item)
                         {
                             cancellationToken.ThrowIfCancellationRequested();
                             zitem.Points = item.First().Points.ToArray();
@@ -119,11 +120,11 @@ namespace DeepNestLib
                 else
                 {
 
-                    foreach (var item in grps)
+                    foreach (IGrouping<int?, NFP>? item in grps)
                     {
                         cancellationToken.ThrowIfCancellationRequested();
                         SvgNest.offsetTree(item.First(), 0.5 * SvgNest.Config.Spacing, SvgNest.Config, cancellationToken);
-                        foreach (var zitem in item)
+                        foreach (NFP? zitem in item)
                         {
                             cancellationToken.ThrowIfCancellationRequested();
                             zitem.Points = item.First().Points.ToArray();
@@ -131,7 +132,7 @@ namespace DeepNestLib
                     }
                 }
 
-                foreach (var item in lsheets)
+                foreach (NFP item in lsheets)
                 {
                     cancellationToken.ThrowIfCancellationRequested();
                     SvgNest.offsetTree(item, SvgNest.Config.SheetEdgeOffset, SvgNest.Config, cancellationToken, true);
@@ -141,14 +142,14 @@ namespace DeepNestLib
 
 
             List<NestItem> partsLocal = new List<NestItem>();
-            var p1 = lpoly.GroupBy(z => z.source).Select(z => new NestItem()
+            IEnumerable<NestItem> p1 = lpoly.GroupBy(z => z.source).Select(z => new NestItem()
             {
                 Polygon = z.First(),
                 IsSheet = false,
                 Quanity = z.Count()
             });
 
-            var p2 = lsheets.GroupBy(z => z.source).Select(z => new NestItem()
+            IEnumerable<NestItem> p2 = lsheets.GroupBy(z => z.source).Select(z => new NestItem()
             {
                 Polygon = z.First(),
                 IsSheet = true,
@@ -159,14 +160,14 @@ namespace DeepNestLib
             partsLocal.AddRange(p1);
             partsLocal.AddRange(p2);
             int srcc = 0;
-            foreach (var item in partsLocal)
+            foreach (NestItem item in partsLocal)
             {
                 item.Polygon.source = srcc++;
             }
 
             cancellationToken.ThrowIfCancellationRequested();
             Nest.launchWorkers(partsLocal.ToArray(), cancellationToken);
-            var plcpr = Nest.nests.First();
+            SheetPlacement plcpr = Nest.nests.First();
 
             if (current == null || plcpr.fitness < current.fitness)
             {
@@ -189,33 +190,33 @@ namespace DeepNestLib
 
             PlacedPartsCount = 0;
             List<NFP> placed = new List<NFP>();
-            foreach (var item in Polygons)
+            foreach (NFP item in Polygons)
             {
                 cancellationToken.ThrowIfCancellationRequested();
                 item.sheet = null;
             }
             List<int> sheetsIds = new List<int>();
 
-            foreach (var item in plcpr.placements)
+            foreach (List<SheetPlacementItem> item in plcpr.placements)
             {
                 cancellationToken.ThrowIfCancellationRequested();
-                foreach (var zitem in item)
+                foreach (SheetPlacementItem zitem in item)
                 {
-                    var sheetid = zitem.sheetId;
+                    int sheetid = zitem.sheetId;
                     if (!sheetsIds.Contains(sheetid))
                     {
                         sheetsIds.Add(sheetid);
                     }
 
-                    var sheet = Sheets.First(z => z.id == sheetid);
+                    NFP sheet = Sheets.First(z => z.id == sheetid);
                     totalSheetsArea += GeometryUtil.polygonArea(sheet);
 
-                    foreach (var ssitem in zitem.sheetplacements)
+                    foreach (PlacementItem ssitem in zitem.sheetplacements)
                     {
                         cancellationToken.ThrowIfCancellationRequested();
 
                         PlacedPartsCount++;
-                        var poly = Polygons.First(z => z.id == ssitem.id);
+                        NFP poly = Polygons.First(z => z.id == ssitem.id);
                         totalPartsArea += GeometryUtil.polygonArea(poly);
                         placed.Add(poly);
                         poly.sheet = sheet;
@@ -226,12 +227,12 @@ namespace DeepNestLib
                 }
             }
 
-            var emptySheets = Sheets.Where(z => !sheetsIds.Contains(z.id)).ToArray();
+            NFP[] emptySheets = Sheets.Where(z => !sheetsIds.Contains(z.id)).ToArray();
 
             MaterialUtilization = Math.Abs(totalPartsArea / totalSheetsArea);
 
-            var ppps = Polygons.Where(z => !placed.Contains(z));
-            foreach (var item in ppps)
+            IEnumerable<NFP> ppps = Polygons.Where(z => !placed.Contains(z));
+            foreach (NFP? item in ppps)
             {
                 item.x = -1000;
                 item.y = 0;
@@ -249,14 +250,14 @@ namespace DeepNestLib
                 Sheets[i].y = y;
                 if (Sheets[i] is Sheet)
                 {
-                    var r = Sheets[i] as Sheet;
+                    Sheet? r = Sheets[i] as Sheet;
                     x += r.Width + gap;
                 }
                 else
                 {
-                    var maxx = Sheets[i].Points.Max(z => z.x);
-                    var minx = Sheets[i].Points.Min(z => z.x);
-                    var w = maxx - minx;
+                    double maxx = Sheets[i].Points.Max(z => z.x);
+                    double minx = Sheets[i].Points.Min(z => z.x);
+                    double w = maxx - minx;
                     x += w + gap;
                 }
             }
@@ -264,7 +265,7 @@ namespace DeepNestLib
 
         public void AddSheet(int w, int h, int src)
         {
-            var tt = new RectangleSheet();
+            RectangleSheet tt = new RectangleSheet();
             tt.Name = "sheet" + (Sheets.Count + 1);
             Sheets.Add(tt);
 
@@ -298,12 +299,12 @@ namespace DeepNestLib
         }
         public void LoadInputData(string path, int count)
         {
-            var dir = new DirectoryInfo(path);
-            foreach (var item in dir.GetFiles("*.svg"))
+            DirectoryInfo dir = new DirectoryInfo(path);
+            foreach (FileInfo item in dir.GetFiles("*.svg"))
             {
                 try
                 {
-                    var src = GetNextSource();
+                    int src = GetNextSource();
                     for (int i = 0; i < count; i++)
                     {
                         ImportFromRawDetail(SvgParser.LoadSvg(item.FullName), src);
@@ -319,11 +320,11 @@ namespace DeepNestLib
         {
             NFP po = null;
             List<NFP> nfps = new List<NFP>();
-            foreach (var item in raw.Outers)
+            foreach (LocalContour item in raw.Outers)
             {
-                var nn = new NFP();
+                NFP nn = new NFP();
                 nfps.Add(nn);
-                foreach (var pitem in item.Points)
+                foreach (System.Drawing.PointF pitem in item.Points)
                 {
                     nn.AddPoint(new SvgPoint(pitem.X, pitem.Y));
                 }
@@ -331,13 +332,17 @@ namespace DeepNestLib
 
             if (nfps.Any())
             {
-                var tt = nfps.OrderByDescending(z => z.Area).First();
+                NFP tt = nfps.OrderByDescending(z => z.Area).First();
                 po = tt;
                 po.Name = raw.Name;
 
-                foreach (var r in nfps)
+                foreach (NFP r in nfps)
                 {
-                    if (r == tt) continue;
+                    if (r == tt)
+                    {
+                        continue;
+                    }
+
                     if (po.children == null)
                     {
                         po.children = new List<NFP>();
@@ -382,29 +387,29 @@ namespace DeepNestLib
         }
         public void LoadXml(string v)
         {
-            var d = XDocument.Load(v);
-            var f = d.Descendants().First();
-            var gap = int.Parse(f.Attribute("gap").Value);
+            XDocument d = XDocument.Load(v);
+            XElement f = d.Descendants().First();
+            int gap = int.Parse(f.Attribute("gap").Value);
             SvgNest.Config.Spacing = gap;
 
-            foreach (var item in d.Descendants("sheet"))
+            foreach (XElement item in d.Descendants("sheet"))
             {
                 int src = GetNextSheetSource();
-                var cnt = int.Parse(item.Attribute("count").Value);
-                var ww = int.Parse(item.Attribute("width").Value);
-                var hh = int.Parse(item.Attribute("height").Value);
+                int cnt = int.Parse(item.Attribute("count").Value);
+                int ww = int.Parse(item.Attribute("width").Value);
+                int hh = int.Parse(item.Attribute("height").Value);
 
                 for (int i = 0; i < cnt; i++)
                 {
                     AddSheet(ww, hh, src);
                 }
             }
-            foreach (var item in d.Descendants("part"))
+            foreach (XElement item in d.Descendants("part"))
             {
-                var cnt = int.Parse(item.Attribute("count").Value);
-                var path = item.Attribute("path").Value;
-                var r = SvgParser.LoadSvg(path);
-                var src = GetNextSource();
+                int cnt = int.Parse(item.Attribute("count").Value);
+                string path = item.Attribute("path").Value;
+                RawDetail r = SvgParser.LoadSvg(path);
+                int src = GetNextSource();
 
                 for (int i = 0; i < cnt; i++)
                 {
