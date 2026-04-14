@@ -211,7 +211,7 @@ namespace DeepNestLib
                     }
 
                     NFP sheet = Sheets.First(z => z.id == sheetid);
-                    totalSheetsArea += GeometryUtil.polygonArea(sheet);
+                    totalSheetsArea += GeometryUtil.PolygonArea(sheet);
 
                     foreach (PlacementItem ssitem in zitem.sheetplacements)
                     {
@@ -219,7 +219,7 @@ namespace DeepNestLib
 
                         PlacedPartsCount++;
                         NFP poly = Polygons.First(z => z.id == ssitem.id);
-                        totalPartsArea += GeometryUtil.polygonArea(poly);
+                        totalPartsArea += GeometryUtil.PolygonArea(poly);
                         placed.Add(poly);
                         poly.sheet = sheet;
                         poly.x = ssitem.x + sheet.x;

@@ -336,8 +336,8 @@ namespace DeepNestLib.Svg
             }
 
             // do not include last point if coincident with starting point
-            while (poly.Count > 0 && GeometryUtil._almostEqual(poly[0].x, poly[poly.Count - 1].x, Conf.toleranceSvg)
-                && GeometryUtil._almostEqual(poly[0].y, poly[poly.Count - 1].y, Conf.toleranceSvg))
+            while (poly.Count > 0 && GeometryUtil.AlmostEqual(poly[0].x, poly[poly.Count - 1].x, Conf.toleranceSvg)
+                && GeometryUtil.AlmostEqual(poly[0].y, poly[poly.Count - 1].y, Conf.toleranceSvg))
             {
                 poly.RemoveAt(0);
             }

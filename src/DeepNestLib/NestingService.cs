@@ -1,5 +1,6 @@
 ﻿using ClipperLib;
 using DeepNestLib.Background;
+using DeepNestLib.GeometryUtilities;
 using DeepNestLib.NoFitPolygon;
 using DeepNestLib.Sheets;
 using DeepNestLib.Svg;
@@ -237,7 +238,7 @@ namespace DeepNestLib
 
         public static NFP GetFrame(NFP A)
         {
-            PolygonBounds bounds = GeometryUtil.getPolygonBounds(A);
+            PolygonBounds bounds = GeometryUtil.GetPolygonBounds(A);
 
             // expand bounds by 10%
             bounds.width *= 1.1;
@@ -424,7 +425,7 @@ namespace DeepNestLib
                 // open a new sheet
                 NFP sheet = sheets.First();
                 sheets = sheets.Skip(1).ToArray();
-                sheetarea = Math.Abs(GeometryUtil.polygonArea(sheet));
+                sheetarea = Math.Abs(GeometryUtil.PolygonArea(sheet));
                 totalsheetarea += sheetarea;
 
                 fitness += sheetarea; // add 1 for each new sheet opened (lower fitness is better)
@@ -497,7 +498,7 @@ namespace DeepNestLib
                                 if (position == null ||
                                     ((sheetNfp[j][k].x - part[0].x) < position.x) ||
                                     (
-                                    GeometryUtil._almostEqual(sheetNfp[j][k].x - part[0].x, position.x)
+                                    GeometryUtil.AlmostEqual(sheetNfp[j][k].x - part[0].x, position.x)
                                     && ((sheetNfp[j][k].y - part[0].y) < position.y))
                                     )
                                 {
@@ -646,14 +647,14 @@ namespace DeepNestLib
                     PolygonBounds partbounds = null;
                     if (config.PlacementType == PlacementTypeEnum.gravity || config.PlacementType == PlacementTypeEnum.box)
                     {
-                        allbounds = GeometryUtil.getPolygonBounds(allpoints);
+                        allbounds = GeometryUtil.GetPolygonBounds(allpoints);
 
                         NFP partpoints = new NFP();
                         for (m = 0; m < part.length; m++)
                         {
                             partpoints.AddPoint(new SvgPoint(part[m].x, part[m].y));
                         }
-                        partbounds = GeometryUtil.getPolygonBounds(partpoints);
+                        partbounds = GeometryUtil.GetPolygonBounds(partpoints);
                     }
                     else
                     {
@@ -684,7 +685,7 @@ namespace DeepNestLib
                                 poly.AddPoint(new SvgPoint(partbounds.x + partbounds.width + shiftvector.x, partbounds.y + shiftvector.y));
                                 poly.AddPoint(new SvgPoint(partbounds.x + partbounds.width + shiftvector.x, partbounds.y + partbounds.height + shiftvector.y));
                                 poly.AddPoint(new SvgPoint(partbounds.x + shiftvector.x, partbounds.y + partbounds.height + shiftvector.y));
-                                rectbounds = GeometryUtil.getPolygonBounds(poly);
+                                rectbounds = GeometryUtil.GetPolygonBounds(poly);
 
                                 // weigh width more, to help compress in direction of gravity
                                 if (config.PlacementType == PlacementTypeEnum.gravity)
@@ -706,7 +707,7 @@ namespace DeepNestLib
                                     localpoints.AddPoint(new SvgPoint(part[m].x + shiftvector.x, part[m].y + shiftvector.y));
                                 }
 
-                                area = Math.Abs(GeometryUtil.polygonArea(getHull(localpoints)));
+                                area = Math.Abs(GeometryUtil.PolygonArea(getHull(localpoints)));
                                 shiftvector.hull = getHull(localpoints);
                                 shiftvector.hullsheet = getHull(sheet);
                             }
@@ -719,8 +720,8 @@ namespace DeepNestLib
                             if (
                     minarea == null ||
                     area < minarea ||
-                    (GeometryUtil._almostEqual(minarea, area) && (minx == null || shiftvector.x < minx)) ||
-                    (GeometryUtil._almostEqual(minarea, area) && (minx != null && GeometryUtil._almostEqual(shiftvector.x, minx) && shiftvector.y < miny))
+                    (GeometryUtil.AlmostEqual(minarea, area) && (minx == null || shiftvector.x < minx)) ||
+                    (GeometryUtil.AlmostEqual(minarea, area) && (minx != null && GeometryUtil.AlmostEqual(shiftvector.x, minx) && shiftvector.y < miny))
                     )
                             {
                                 minarea = area;
@@ -806,7 +807,7 @@ namespace DeepNestLib
             // scale this value high - we really want to get all the parts in, even at the cost of opening new sheets
             for (i = 0; i < parts.Count(); i++)
             {
-                fitness += 100000000 * (Math.Abs(GeometryUtil.polygonArea(parts[i])) / totalsheetarea);
+                fitness += 100000000 * (Math.Abs(GeometryUtil.PolygonArea(parts[i])) / totalsheetarea);
             }
 
             return new SheetPlacement()
@@ -983,12 +984,12 @@ namespace DeepNestLib
             if (Achildren.Count > 0)
             {
                 NFP Brotated = RotatePolygon(B, processed.BRotation);
-                PolygonBounds bbounds = GeometryUtil.getPolygonBounds(Brotated);
+                PolygonBounds bbounds = GeometryUtil.GetPolygonBounds(Brotated);
                 List<NFP> cnfp = new List<NFP>();
 
                 for (int j = 0; j < Achildren.Count; j++)
                 {
-                    PolygonBounds cbounds = GeometryUtil.getPolygonBounds(Achildren[j]);
+                    PolygonBounds cbounds = GeometryUtil.GetPolygonBounds(Achildren[j]);
                     if (cbounds.width > bbounds.width && cbounds.height > bbounds.height)
                     {
                         NFP[] n = GetInnerNfp(Achildren[j], Brotated, 1, data.config);
@@ -1122,7 +1123,7 @@ namespace DeepNestLib
             for (int i = 0; i < solution.Count(); i++)
             {
                 NFP n = ToNestCoordinates(solution[i].ToArray(), 10000000);
-                double sarea = -GeometryUtil.polygonArea(n);
+                double sarea = -GeometryUtil.PolygonArea(n);
                 if (largestArea == null || largestArea < sarea)
                 {
                     clipperNfp = n;
@@ -1191,7 +1192,7 @@ namespace DeepNestLib
             {
                 for (int j = 0; j < nfp.children.Count; j++)
                 {
-                    if (GeometryUtil.polygonArea(nfp.children[j]) < 0)
+                    if (GeometryUtil.PolygonArea(nfp.children[j]) < 0)
                     {
                         nfp.children[j].reverse();
                     }
@@ -1201,7 +1202,7 @@ namespace DeepNestLib
                 }
             }
 
-            if (GeometryUtil.polygonArea(nfp) > 0)
+            if (GeometryUtil.PolygonArea(nfp) > 0)
             {
                 nfp.reverse();
             }
@@ -1270,7 +1271,7 @@ namespace DeepNestLib
                 for (int i = 0; i < solution.Count(); i++)
                 {
                     NFP n = ToNestCoordinates(solution[i].ToArray(), 10000000);
-                    double sarea = GeometryUtil.polygonArea(n);
+                    double sarea = GeometryUtil.PolygonArea(n);
                     if (largestArea == null || largestArea > sarea)
                     {
                         clipperNfp = n;
