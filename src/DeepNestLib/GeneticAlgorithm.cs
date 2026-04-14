@@ -9,122 +9,109 @@ namespace DeepNestLib
     public class GeneticAlgorithm
     {
         SvgNestConfig Config;
-        public List<PopulationItem> population;
+
+        public List<PopulationItem> Population;
 
         public static bool StrictAngles = false;
-        float[] defaultAngles = new float[] {
-        0,
-0,
-90,
-0,
-0,
-270,
-180,
-180,
-180,
-90
 
-        };
+        float[] DefaultAngles = [0, 0, 90, 0, 0, 270, 180, 180, 180, 90];
+
+        Random R = new();
 
         public GeneticAlgorithm(NFP[] adam, SvgNestConfig config, CancellationToken cancellationToken)
         {
-
             List<float> ang2 = new List<float>();
             for (int i = 0; i < adam.Length; i++)
             {
                 ang2.Add((i * 90) % 360);
             }
-            defaultAngles = ang2.ToArray();
+            DefaultAngles = ang2.ToArray();
             Config = config;
-
 
             List<float> angles = new List<float>();
             for (int i = 0; i < adam.Length; i++)
             {
                 if (StrictAngles)
                 {
-                    angles.Add(defaultAngles[i]);
+                    angles.Add(DefaultAngles[i]);
                 }
                 else
                 {
-                    var angle = (float)Math.Floor(r.NextDouble() * Config.Rotations) * (360f / Config.Rotations);
+                    float angle = (float)Math.Floor(R.NextDouble() * Config.Rotations) * (360f / Config.Rotations);
                     angles.Add(angle);
                 }
 
-                //angles.Add(randomAngle(adam[i]));
             }
-            population = new List<PopulationItem>();
-            population.Add(new PopulationItem() { placements = adam.ToList(), Rotation = angles.ToArray() });
-            while (population.Count() < config.PopulationSize)
+            Population = [new PopulationItem() { placements = adam.ToList(), Rotation = angles.ToArray() }];
+            while (Population.Count < config.PopulationSize)
             {
                 cancellationToken.ThrowIfCancellationRequested();
-                var mutant = this.mutate(population[0]);
-                population.Add(mutant);
+                PopulationItem mutant = this.Mutate(Population[0]);
+                Population.Add(mutant);
             }
         }
 
 
-        public PopulationItem mutate(PopulationItem p)
+        public PopulationItem Mutate(PopulationItem p)
         {
-            var clone = new PopulationItem();
+            PopulationItem clone = new PopulationItem();
 
             clone.placements = p.placements.ToArray().ToList();
             clone.Rotation = p.Rotation.Clone() as float[];
             for (int i = 0; i < clone.placements.Count(); i++)
             {
-                var rand = r.NextDouble();
+                double rand = R.NextDouble();
                 if (rand < 0.01 * Config.MutationRate)
                 {
-                    var j = i + 1;
+                    int j = i + 1;
                     if (j < clone.placements.Count)
                     {
-                        var temp = clone.placements[i];
+                        NFP temp = clone.placements[i];
                         clone.placements[i] = clone.placements[j];
                         clone.placements[j] = temp;
                     }
                 }
-                rand = r.NextDouble();
+                rand = R.NextDouble();
                 if (rand < 0.01 * Config.MutationRate)
                 {
-                    clone.Rotation[i] = (float)Math.Floor(r.NextDouble() * Config.Rotations) * (360f / Config.Rotations);
+                    clone.Rotation[i] = (float)Math.Floor(R.NextDouble() * Config.Rotations) * (360f / Config.Rotations);
                 }
             }
 
 
             return clone;
         }
-        Random r = new Random();
-        public float[] shuffleArray(float[] array)
+
+        public float[] ShuffleArray(float[] array)
         {
-            for (var i = array.Length - 1; i > 0; i--)
+            for (int i = array.Length - 1; i > 0; i--)
             {
-                var j = (int)Math.Floor(r.NextDouble() * (i + 1));
-                var temp = array[i];
+                int j = (int)Math.Floor(R.NextDouble() * (i + 1));
+                float temp = array[i];
                 array[i] = array[j];
                 array[j] = temp;
             }
             return array;
         }
 
-
         // returns a random individual from the population, weighted to the front of the list (lower fitness value is more likely to be selected)
-        public PopulationItem randomWeightedIndividual(PopulationItem exclude = null)
+        public PopulationItem RandomWeightedIndividual(PopulationItem exclude = null)
         {
             //var pop = this.population.slice(0);
-            var pop = this.population.ToArray();
+            PopulationItem[] pop = this.Population.ToArray();
 
             if (exclude != null && Array.IndexOf(pop, exclude) >= 0)
             {
                 pop.Splice(Array.IndexOf(pop, exclude), 1);
             }
 
-            var rand = r.NextDouble();
+            double rand = R.NextDouble();
 
             float lower = 0;
-            var weight = 1 / (float)pop.Length;
+            float weight = 1 / (float)pop.Length;
             float upper = weight;
 
-            for (var i = 0; i < pop.Length; i++)
+            for (int i = 0; i < pop.Length; i++)
             {
                 // if the random number falls between lower and upper bounds, select this individual
                 if (rand > lower && rand < upper)
@@ -139,15 +126,15 @@ namespace DeepNestLib
         }
 
         // single point crossover
-        public PopulationItem[] mate(PopulationItem male, PopulationItem female)
+        public PopulationItem[] Mate(PopulationItem male, PopulationItem female)
         {
-            var cutpoint = (int)Math.Round(Math.Min(Math.Max(r.NextDouble(), 0.1), 0.9) * (male.placements.Count - 1));
+            int cutpoint = (int)Math.Round(Math.Min(Math.Max(R.NextDouble(), 0.1), 0.9) * (male.placements.Count - 1));
 
-            var gene1 = new List<NFP>(male.placements.Take(cutpoint).ToArray());
-            var rot1 = new List<float>(male.Rotation.Take(cutpoint).ToArray());
+            List<NFP> gene1 = new List<NFP>(male.placements.Take(cutpoint).ToArray());
+            List<float> rot1 = new List<float>(male.Rotation.Take(cutpoint).ToArray());
 
-            var gene2 = new List<NFP>(female.placements.Take(cutpoint).ToArray());
-            var rot2 = new List<float>(female.Rotation.Take(cutpoint).ToArray());
+            List<NFP> gene2 = new List<NFP>(female.placements.Take(cutpoint).ToArray());
+            List<float> rot2 = new List<float>(female.Rotation.Take(cutpoint).ToArray());
 
             int i = 0;
 
@@ -169,9 +156,6 @@ namespace DeepNestLib
                 }
             }
 
-
-
-
             return new[] {new  PopulationItem() {
                 placements= gene1, Rotation= rot1.ToArray()},
                 new PopulationItem(){ placements= gene2, Rotation= rot2.ToArray()}};
@@ -180,30 +164,29 @@ namespace DeepNestLib
         public void generation()
         {
             // Individuals with higher fitness are more likely to be selected for mating
-            population = population.OrderBy(z => z.fitness).ToList();
+            Population = Population.OrderBy(z => z.fitness).ToList();
 
             // fittest individual is preserved in the new generation (elitism)
-
             List<PopulationItem> newpopulation = new List<PopulationItem>();
-            newpopulation.Add(this.population[0]);
-            while (newpopulation.Count() < this.population.Count)
+            newpopulation.Add(this.Population[0]);
+            while (newpopulation.Count() < this.Population.Count)
             {
-                var male = randomWeightedIndividual();
-                var female = randomWeightedIndividual(male);
+                PopulationItem male = RandomWeightedIndividual();
+                PopulationItem female = RandomWeightedIndividual(male);
 
                 // each mating produces two children
-                var children = mate(male, female);
+                PopulationItem[] children = Mate(male, female);
 
                 // slightly mutate children
-                newpopulation.Add(this.mutate(children[0]));
+                newpopulation.Add(this.Mutate(children[0]));
 
-                if (newpopulation.Count < this.population.Count)
+                if (newpopulation.Count < this.Population.Count)
                 {
-                    newpopulation.Add(this.mutate(children[1]));
+                    newpopulation.Add(this.Mutate(children[1]));
                 }
             }
 
-            this.population = newpopulation;
+            this.Population = newpopulation;
         }
     }
 

@@ -96,7 +96,6 @@ namespace DeepNestLib.Svg
             return newp;
         }
 
-
         public static bool PointInPolygon(SvgPoint point, NFP polygon)
         {
             // scaling is deliberately coarse to filter out points that lie *on* the polygon
@@ -673,8 +672,8 @@ namespace DeepNestLib.Svg
             {
                 return;
             }
-            ga.population[payload.index].processing = null;
-            ga.population[payload.index].fitness = payload.fitness;
+            ga.Population[payload.index].processing = null;
+            ga.Population[payload.index].fitness = payload.fitness;
 
             // render placement
             if (nests.Count == 0 || nests[0].fitness > payload.fitness)
@@ -720,9 +719,9 @@ namespace DeepNestLib.Svg
 
             // check if current generation is finished
             bool finished = true;
-            for (int i = 0; i < ga.population.Count; i++)
+            for (int i = 0; i < ga.Population.Count; i++)
             {
-                if (ga.population[i].fitness == null)
+                if (ga.Population[i].fitness == null)
                 {
                     finished = false;
                     break;
@@ -734,7 +733,7 @@ namespace DeepNestLib.Svg
                 ga.generation();
             }
 
-            int running = ga.population.Where((p) =>
+            int running = ga.Population.Where((p) =>
             {
                 return p.processing != null;
             }).Count();
@@ -763,24 +762,24 @@ namespace DeepNestLib.Svg
                     }
                 }
             }
-            for (int i = 0; i < ga.population.Count; i++)
+            for (int i = 0; i < ga.Population.Count; i++)
             {
                 //if(running < config.threads && !GA.population[i].processing && !GA.population[i].fitness){
                 // only one background window now...
-                if (running < 1 && ga.population[i].processing == null && ga.population[i].fitness == null)
+                if (running < 1 && ga.Population[i].processing == null && ga.Population[i].fitness == null)
                 {
-                    ga.population[i].processing = true;
+                    ga.Population[i].processing = true;
 
                     // hash values on arrays don't make it across ipc, store them in an array and reassemble on the other side....
                     List<int> ids = new List<int>();
                     List<int> sources = new List<int>();
                     List<List<NFP>> children = new List<List<NFP>>();
 
-                    for (int j = 0; j < ga.population[i].placements.Count; j++)
+                    for (int j = 0; j < ga.Population[i].placements.Count; j++)
                     {
-                        int id = ga.population[i].placements[j].id;
-                        int? source = ga.population[i].placements[j].source;
-                        List<NFP> child = ga.population[i].placements[j].children;
+                        int id = ga.Population[i].placements[j].id;
+                        int? source = ga.Population[i].placements[j].source;
+                        List<NFP> child = ga.Population[i].placements[j].children;
                         ids.Add(id);
                         sources.Add(source.Value);
                         children.Add(child);
@@ -793,7 +792,7 @@ namespace DeepNestLib.Svg
                         sheetids = sheetids.ToArray(),
                         sheetsources = sheetsources.ToArray(),
                         sheetchildren = sheetchildren,
-                        individual = ga.population[i],
+                        individual = ga.Population[i],
                         config = Config,
                         ids = ids.ToArray(),
                         sources = sources.ToArray(),
