@@ -10,7 +10,7 @@ namespace DeepNestLib.Rotation
     }
     public static class RotationHelpers
     {
-        public static List<float> GetAllowedRotation(NFP part)
+        public static List<float> GetAllowedRotations(NFP part)
         {
             RotationConstraint constraint = part.RotationConstraint;
             return constraint switch

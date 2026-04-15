@@ -2,6 +2,7 @@
 using DeepNestLib.Background;
 using DeepNestLib.GeometryUtilities;
 using DeepNestLib.NoFitPolygon;
+using DeepNestLib.Rotation;
 using DeepNestLib.Sheets;
 using DeepNestLib.Svg;
 using Minkowski;
@@ -450,7 +451,9 @@ namespace DeepNestLib
                     NFP[] sheetNfp = null;
                     // try all possible rotations until it fits
                     // (only do this for the first part of each sheet, to ensure that all parts that can be placed are, even if we have to to open a lot of sheets)
-                    for (j = 0; j < (360f / config.Rotations); j++)
+                    List<float> allowedRoations = RotationHelpers.GetAllowedRotations(part);
+                    foreach (float allowedRotation in allowedRoations)
+                    //for (j = 0; j < (360f / config.Rotations); j++)
                     {
                         sheetNfp = GetInnerNfp(sheet, part, 0, config);
 
@@ -466,8 +469,8 @@ namespace DeepNestLib
                             }
                         }
 
-                        NFP r = RotatePolygon(part, 360f / config.Rotations);
-                        r.rotation = part.rotation + (360f / config.Rotations);
+                        NFP r = RotatePolygon(part, allowedRotation);
+                        r.rotation = part.rotation + allowedRotation;
                         r.source = part.source;
                         r.id = part.id;
 
