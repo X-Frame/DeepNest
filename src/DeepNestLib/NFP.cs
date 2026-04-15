@@ -6,9 +6,9 @@ using System.Linq;
 
 namespace DeepNestLib
 {
-    public class NFP : IStringify
+    public class NFP : IStringify, ICloneable
     {
-        public RotationConstraint RotationConstraint { get; set; } = RotationConstraint.Fixed180;
+        public RotationConstraint RotationConstraint { get; set; } = RotationConstraint.Fixed;
         public bool fitted { get { return sheet != null; } }
         public NFP sheet;
         public override string ToString()
@@ -210,6 +210,11 @@ namespace DeepNestLib
             clone.isBin = this.isBin;
 
             return clone;
+        }
+
+        object ICloneable.Clone()
+        {
+            return Clone();
         }
     }
 }

@@ -64,34 +64,35 @@ namespace DeepNestLib
 
             if (!inner)
             {
-                return [Clone(nfp.First())];
+                return [nfp.First().Clone()];
             }
             throw new NotImplementedException();
         }
         public static NFP Clone(NFP nfp)
         {
-            NFP newnfp = new();
-            for (int i = 0; i < nfp.length; i++)
-            {
-                newnfp.AddPoint(new SvgPoint(nfp[i].x, nfp[i].y));
-            }
+            return nfp.Clone();
+            //NFP newnfp = new();
+            //for (int i = 0; i < nfp.length; i++)
+            //{
+            //    newnfp.AddPoint(new SvgPoint(nfp[i].x, nfp[i].y));
+            //}
 
-            if (nfp.children != null && nfp.children.Count > 0)
-            {
-                newnfp.children = new List<NFP>();
-                for (int i = 0; i < nfp.children.Count; i++)
-                {
-                    NFP child = nfp.children[i];
-                    NFP newchild = new NFP();
-                    for (int j = 0; j < child.length; j++)
-                    {
-                        newchild.AddPoint(new SvgPoint(child[j].x, child[j].y));
-                    }
-                    newnfp.children.Add(newchild);
-                }
-            }
+            //if (nfp.children != null && nfp.children.Count > 0)
+            //{
+            //    newnfp.children = new List<NFP>();
+            //    for (int i = 0; i < nfp.children.Count; i++)
+            //    {
+            //        NFP child = nfp.children[i];
+            //        NFP newchild = new NFP();
+            //        for (int j = 0; j < child.length; j++)
+            //        {
+            //            newchild.AddPoint(new SvgPoint(child[j].x, child[j].y));
+            //        }
+            //        newnfp.children.Add(newchild);
+            //    }
+            //}
 
-            return newnfp;
+            //return newnfp;
         }
 
 

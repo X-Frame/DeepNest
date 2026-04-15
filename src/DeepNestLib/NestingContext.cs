@@ -58,22 +58,7 @@ namespace DeepNestLib
             foreach (NFP item in Polygons)
             {
                 cancellationToken.ThrowIfCancellationRequested();
-                NFP clone = new NFP();
-                clone.id = item.id;
-                clone.source = item.source;
-                clone.Points = item.Points.Select(z => new SvgPoint(z.x, z.y) { exact = z.exact }).ToArray();
-                if (item.children != null)
-                {
-                    clone.children = new List<NFP>();
-                    foreach (NFP citem in item.children)
-                    {
-                        clone.children.Add(new NFP());
-                        NFP l = clone.children.Last();
-                        l.id = citem.id;
-                        l.source = citem.source;
-                        l.Points = citem.Points.Select(z => new SvgPoint(z.x, z.y) { exact = z.exact }).ToArray();
-                    }
-                }
+                NFP clone = item.Clone();
                 lpoly.Add(clone);
             }
 
@@ -81,23 +66,7 @@ namespace DeepNestLib
             foreach (NFP item in Sheets)
             {
                 cancellationToken.ThrowIfCancellationRequested();
-                NFP clone = new NFP();
-                clone.id = item.id;
-                clone.source = item.source;
-                clone.Points = item.Points.Select(z => new SvgPoint(z.x, z.y) { exact = z.exact }).ToArray();
-                if (item.children != null)
-                {
-                    clone.children = new List<NFP>();
-                    foreach (NFP citem in item.children)
-                    {
-                        cancellationToken.ThrowIfCancellationRequested();
-                        clone.children.Add(new NFP());
-                        NFP l = clone.children.Last();
-                        l.id = citem.id;
-                        l.source = citem.source;
-                        l.Points = citem.Points.Select(z => new SvgPoint(z.x, z.y) { exact = z.exact }).ToArray();
-                    }
-                }
+                NFP clone = item.Clone();
                 lsheets.Add(clone);
             }
 
