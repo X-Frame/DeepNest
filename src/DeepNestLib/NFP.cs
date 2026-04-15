@@ -1,4 +1,5 @@
-﻿using DeepNestLib.Svg;
+﻿using DeepNestLib.Rotation;
+using DeepNestLib.Svg;
 using System;
 using System.Collections.Generic;
 using System.Linq;
@@ -7,6 +8,7 @@ namespace DeepNestLib
 {
     public class NFP : IStringify
     {
+        public RotationConstraint RotationConstraint { get; set; } = RotationConstraint.Fixed180;
         public bool fitted { get { return sheet != null; } }
         public NFP sheet;
         public override string ToString()
@@ -160,7 +162,7 @@ namespace DeepNestLib
 
         public NFP slice(int v)
         {
-            var ret = new NFP();
+            NFP ret = new NFP();
             List<SvgPoint> pp = new List<SvgPoint>();
             for (int i = v; i < length; i++)
             {
