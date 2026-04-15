@@ -1,4 +1,5 @@
-﻿using DeepNestLib.Svg;
+﻿using DeepNestLib.Rotation;
+using DeepNestLib.Svg;
 using System;
 using System.Collections.Generic;
 using System.Linq;
@@ -37,7 +38,8 @@ namespace DeepNestLib
                 }
                 else
                 {
-                    float angle = (float)Math.Floor(R.NextDouble() * Config.Rotations) * (360f / Config.Rotations);
+                    float angle = RotationHelpers.GetRandomAllowedRotation(adam[i]);
+                    //float angle = (float)Math.Floor(R.NextDouble() * Config.Rotations) * (360f / Config.Rotations);
                     angles.Add(angle);
                 }
 
@@ -74,7 +76,7 @@ namespace DeepNestLib
                 rand = R.NextDouble();
                 if (rand < 0.01 * Config.MutationRate)
                 {
-                    clone.Rotation[i] = (float)Math.Floor(R.NextDouble() * Config.Rotations) * (360f / Config.Rotations);
+                    clone.Rotation[i] = RotationHelpers.GetRandomAllowedRotation(clone.placements[i]); //(float)Math.Floor(R.NextDouble() * Config.Rotations) * (360f / Config.Rotations);
                 }
             }
 
