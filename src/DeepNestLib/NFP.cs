@@ -22,6 +22,7 @@ namespace DeepNestLib
         public SvgPoint[] Points;
         public bool fitted { get { return sheet != null; } }
         public NFP sheet;
+        public List<float> AllowedAngles { get; set; }
         public override string ToString()
         {
             string str1 = (Points != null) ? Points.Count() + "" : "null";
@@ -124,6 +125,77 @@ namespace DeepNestLib
         public string stringify()
         {
             throw new NotImplementedException();
+        }
+        /// <summary>
+        /// Creates a deep clone of the NFP (including Points array, children, AllowedAngles, etc.)
+        /// Uses DeepNestLib.Rotation utilities where appropriate for rotation-related fields.
+        /// </summary>
+        public NFP Clone(bool applyCurrentRotation = false)
+        {
+            NFP clone = new NFP
+            {
+                Name = this.Name,
+                offsetx = this.offsetx,
+                offsety = this.offsety,
+                Source = this.Source,
+                Id = this.Id,
+                Rotation = this.Rotation,
+                RotationConstraint = this.RotationConstraint,
+                x = this.x,
+                y = this.y,
+                isBin = this.isBin,
+                sheet = this.sheet,
+                AllowedAngles = this.AllowedAngles?.ToList()
+            };
+            if (applyCurrentRotation && Math.Abs(this.Rotation) > 0.001f)
+            {
+                clone.Rotate(this.Rotation);
+                clone.Rotation = this.Rotation;
+            }
+
+            // Deep copy Points array
+            if (this.Points != null)
+            {
+                clone.Points = new SvgPoint[this.Points.Length];
+                for (int i = 0; i < this.Points.Length; i++)
+                {
+                    clone.Points[i] = new SvgPoint(this.Points[i].x, this.Points[i].y);
+                }
+            }
+
+            // Deep clone children recursively
+            if (this.children != null)
+            {
+                clone.children = new List<NFP>(this.children.Count);
+                foreach (NFP child in this.children)
+                {
+                    clone.children.Add(child?.Clone());
+                }
+            }
+
+            return clone;
+        }
+        public NFP Rotate(float degrees)
+        {
+            return NestingService.RotatePolygon(this, degrees);
+        }
+
+        public void ApplyRotation(float degrees)
+        {
+            if (Math.Abs(degrees) < 0.001f)
+            {
+                return;
+            }
+
+            NFP rotated = NestingService.RotatePolygon(this, degrees);
+
+            this.Points = rotated.Points;
+            this.Rotation = (this.Rotation + degrees) % 360f;   // accumulate rotation
+
+            if (rotated.children != null)
+            {
+                this.children = rotated.children;
+            }
         }
     }
 }

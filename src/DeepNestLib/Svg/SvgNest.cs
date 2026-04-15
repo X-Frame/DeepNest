@@ -1,4 +1,5 @@
 ﻿using ClipperLib;
+using DeepNestLib.Rotation;
 using DeepNestLib.Sheets;
 using System;
 using System.Collections.Generic;
@@ -695,6 +696,7 @@ namespace DeepNestLib.Svg
             {
                 List<NFP> adam = new List<NFP>();
                 int id = 0;
+                Random r = new();
                 for (int i = 0; i < parts.Count(); i++)
                 {
                     if (!parts[i].IsSheet)
@@ -702,10 +704,27 @@ namespace DeepNestLib.Svg
 
                         for (int j = 0; j < parts[i].Quanity; j++)
                         {
-                            NFP poly = CloneTree(parts[i].Polygon); // deep copy
+                            NFP poly = parts[i].Polygon.Clone();
+                            float rotationToApply = 0f;
+
+                            if (poly.AllowedAngles != null && poly.AllowedAngles.Count > 0)
+                            {
+                                // Random allowed angle for initial population
+                                rotationToApply = poly.AllowedAngles[r.Next(poly.AllowedAngles.Count)];
+                            }
+                            else if (poly.RotationConstraint != RotationConstraint.Fixed)
+                            {
+                                // Default common rotations (0, 90, 180, 270)
+                                rotationToApply = (float)(r.Next(4) * 90);
+                            }
+                            if (Math.Abs(rotationToApply) > 0.001f)
+                            {
+                                poly = NestingService.RotatePolygon(poly, rotationToApply);
+                                poly.Rotation = rotationToApply;
+                            }
+
                             poly.Id = id; // id is the unique id of all parts that will be nested, including cloned duplicates
                             poly.Source = i; // source is the id of each unique part from the main part list
-
                             adam.Add(poly);
                             id++;
                         }

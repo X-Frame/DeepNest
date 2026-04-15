@@ -9,7 +9,7 @@
 
         <!-- NuGet Package Metadata -->
         <PackageId>DeepNest</PackageId>
-        <Version>1.4.0</Version>
+        <Version>1.4.17</Version>
         <Authors>Rafael del Molino</Authors>
         <Company>Rafael del Molino</Company>
         <Product>DeepNestLib</Product>

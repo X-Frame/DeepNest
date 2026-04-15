@@ -2,7 +2,6 @@
 using DeepNestLib.Background;
 using DeepNestLib.GeometryUtilities;
 using DeepNestLib.NoFitPolygon;
-using DeepNestLib.Rotation;
 using DeepNestLib.Sheets;
 using DeepNestLib.Svg;
 using Minkowski;
@@ -397,20 +396,17 @@ namespace DeepNestLib
             // total length of merged lines
             double totalMerged = 0;
 
-            // rotate paths by given rotation
-            List<NFP> rotatedParts = [];
-            for (i = 0; i < parts.Length; i++)
-            {
-                NFP originalPart = parts[i];
-                NFP rotatedPart = RotatePolygon(originalPart, originalPart.Rotation);
-                rotatedPart.Rotation = originalPart.Rotation;
-                rotatedPart.Source = originalPart.Source;
-                rotatedPart.Id = originalPart.Id;
-                rotatedPart.RotationConstraint = originalPart.RotationConstraint;
-                rotatedParts.Add(rotatedPart);
-            }
+            //NFP[] parts = new NFP[partsInput.Length];
 
-            parts = rotatedParts.ToArray();
+            //for (i = 0; i < partsInput.Length; i++)
+            //{
+            //    NFP original = partsInput[i];
+            //    parts[i] = RotatePolygon(original, original.Rotation);
+            //    parts[i].Rotation = original.Rotation;
+            //    parts[i].Source = original.Source;
+            //    parts[i].Id = original.Id;
+            //    parts[i].RotationConstraint = original.RotationConstraint;
+            //}
 
             List<SheetPlacementItem> allplacements = [];
 
@@ -455,24 +451,12 @@ namespace DeepNestLib
                     NFP[] sheetNfp = null;
                     bool canPlace = false;
 
-                    List<float> allowedAngles = RotationHelpers.GetAllowedRotation(part);
-
-                    foreach (float angle in allowedAngles)
+                    sheetNfp = GetInnerNfp(sheet, part, 0, config);
+                    if (sheetNfp != null && sheetNfp.Length > 0 && sheetNfp[0].Length > 0)
                     {
-                        NFP rotatedPart = RotatePolygon(part, angle);
-                        rotatedPart.Rotation = angle;
-                        rotatedPart.Source = part.Source;
-                        rotatedPart.Id = part.Id;
-                        rotatedPart.RotationConstraint = part.RotationConstraint;
-
-                        sheetNfp = GetInnerNfp(sheet, rotatedPart, 0, config);
-                        if (sheetNfp != null && sheetNfp.Length > 0 && sheetNfp[0].Length > 0)
-                        {
-                            part = rotatedPart;           // Use this rotation
-                            parts[i] = rotatedPart;       // Update in the array
-                            break;
-                        }
+                        canPlace = true;
                     }
+
                     if (!canPlace || sheetNfp == null || sheetNfp.Length == 0)
                     {
                         continue;
@@ -850,7 +834,24 @@ namespace DeepNestLib
             int index = data.index;
             PopulationItem individual = data.individual;
 
-            List<NFP> parts = individual.Placements;
+            List<NFP> rotatedParts = new List<NFP>();
+            for (int i = 0; i < individual.Placements.Count; i++)
+            {
+                NFP original = individual.Placements[i];
+
+                NFP rotated = RotatePolygon(original, original.Rotation);
+
+                // Preserve all metadata
+                rotated.Rotation = original.Rotation;
+                rotated.Source = original.Source;
+                rotated.Id = original.Id;
+                rotated.RotationConstraint = original.RotationConstraint;
+
+                rotatedParts.Add(rotated);
+            }
+
+            List<NFP> parts = rotatedParts;
+            this.parts = rotatedParts.ToArray();
 
             List<NfpPair> pairs = new List<NfpPair>();
 

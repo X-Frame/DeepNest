@@ -58,22 +58,7 @@ namespace DeepNestLib
             foreach (NFP item in Polygons)
             {
                 cancellationToken.ThrowIfCancellationRequested();
-                NFP clone = new NFP();
-                clone.Id = item.Id;
-                clone.Source = item.Source;
-                clone.Points = item.Points.Select(z => new SvgPoint(z.x, z.y) { exact = z.exact }).ToArray();
-                if (item.children != null)
-                {
-                    clone.children = new List<NFP>();
-                    foreach (NFP citem in item.children)
-                    {
-                        clone.children.Add(new NFP());
-                        NFP l = clone.children.Last();
-                        l.Id = citem.Id;
-                        l.Source = citem.Source;
-                        l.Points = citem.Points.Select(z => new SvgPoint(z.x, z.y) { exact = z.exact }).ToArray();
-                    }
-                }
+                NFP clone = item.Clone();
                 lpoly.Add(clone);
             }
 
@@ -217,14 +202,20 @@ namespace DeepNestLib
                     {
                         cancellationToken.ThrowIfCancellationRequested();
 
-                        PlacedPartsCount++;
                         NFP poly = Polygons.First(z => z.Id == ssitem.id);
+                        if (Math.Abs(ssitem.rotation - poly.Rotation) > 0.001f)
+                        {
+                            poly = NestingService.RotatePolygon(poly, ssitem.rotation - poly.Rotation);
+                            poly.Points = NestingService.RotatePolygon(poly, ssitem.rotation).Points;
+                        }
                         totalPartsArea += GeometryUtil.PolygonArea(poly);
-                        placed.Add(poly);
                         poly.sheet = sheet;
                         poly.x = ssitem.x + sheet.x;
                         poly.y = ssitem.y + sheet.y;
                         poly.Rotation = ssitem.rotation;
+
+                        PlacedPartsCount++;
+                        placed.Add(poly);
                     }
                 }
             }

@@ -7,6 +7,7 @@ using System.Threading;
 
 namespace DeepNestLib
 {
+    // Mostly AI
     public class GeneticAlgorithm
     {
         public SvgNestConfig Config { get; private set; }
@@ -17,11 +18,25 @@ namespace DeepNestLib
         public GeneticAlgorithm(NFP[] adam, SvgNestConfig config, CancellationToken cancellationToken)
         {
             Config = config;
-            Population = new List<PopulationItem>();
-            for (int i = 0; i < config.PopulationSize; i++)
+            foreach (NFP part in adam)
+            {
+                part.AllowedAngles = RotationHelpers.GetAllowedRotation(part);
+            }
+            float[] angles = new float[adam.Length];
+            for (int i = 0; i < adam.Length; i++)
+            {
+                angles[i] = ChooseRandomLegalRotation(adam[i]);
+            }
+            Population = [new PopulationItem
+            {
+                Placements = adam.ToList(),
+                Rotation = angles
+            }];
+            while (Population.Count < config.PopulationSize)
             {
                 cancellationToken.ThrowIfCancellationRequested();
-                Population.Add(CreateIndividual(adam));
+                PopulationItem mutant = this.Mutate(Population[0]);
+                Population.Add(mutant);
             }
         }
         /// <summary>
@@ -53,7 +68,12 @@ namespace DeepNestLib
                 constraints.Add(original.RotationConstraint);
             }
 
-            return new PopulationItem(placements, [.. rotations], [.. constraints]);
+            return new PopulationItem
+            {
+                Placements = placements,
+                Rotation = rotations.ToArray(),
+                RotationConstraints = constraints.ToArray()
+            };
         }
 
         /// <summary>
@@ -77,145 +97,48 @@ namespace DeepNestLib
             return allowed[index];
         }
 
-        /// <summary>
-        ///// Main evolution step - called each generation
-        ///// </summary>
-        //public void Evolve(CancellationToken cancellationToken)
-        //{
-        //    if (Population.Count == 0)
-        //    {
-        //        return;
-        //    }
-
-        //    // Sort by fitness (lower is better)
-        //    Population = Population.OrderBy(p => p.Fitness).ToList();
-
-        //    List<PopulationItem> newPopulation = new List<PopulationItem>();
-
-        //    // Elitism: keep the best individuals
-        //    int eliteCount = Math.Max(1, (int)(Config.PopulationSize * 0.1));
-        //    for (int i = 0; i < eliteCount && i < Population.Count; i++)
-        //    {
-        //        newPopulation.Add(Population[i].Clone());
-        //    }
-
-        //    // Breed the rest
-        //    while (newPopulation.Count < Config.PopulationSize)
-        //    {
-        //        cancellationToken.ThrowIfCancellationRequested();
-
-        //        PopulationItem parent1 = SelectParent();
-        //        PopulationItem parent2 = SelectParent();
-
-        //        PopulationItem child = Crossover(parent1, parent2);
-        //        Mutate(child, Config.MutationRate);
-
-        //        newPopulation.Add(child);
-        //    }
-
-        //    Population = newPopulation;
-        //}
-
-        //private PopulationItem SelectParent()
-        //{
-        //    // Tournament selection (simple & effective)
-        //    int tournamentSize = 5;
-        //    PopulationItem best = null;
-
-        //    for (int i = 0; i < tournamentSize; i++)
-        //    {
-        //        PopulationItem candidate = Population[_random.Next(Population.Count)];
-        //        if (best == null || candidate.Fitness < best.Fitness)
-        //        {
-        //            best = candidate;
-        //        }
-        //    }
-        //    return best;
-        //}
-
-        //private PopulationItem Crossover(PopulationItem parent1, PopulationItem parent2)
-        //{
-        //    int count = parent1.placements.Count;
-        //    List<NFP> placements = new List<NFP>(count);
-        //    List<float> rotations = new List<float>(count);
-        //    List<RotationConstraint> constraints = new List<RotationConstraint>(count);
-
-        //    for (int i = 0; i < count; i++)
-        //    {
-        //        // Randomly choose rotation from one of the parents (respecting constraint)
-        //        bool takeFromParent1 = _random.NextDouble() < 0.5;
-        //        PopulationItem source = takeFromParent1 ? parent1 : parent2;
-
-        //        float angle = source.Rotation[i];
-        //        RotationConstraint constraint = source.RotationConstraints[i];
-
-        //        NFP original = source.placements[i]; // Note: this is already rotated, but we re-apply for safety
-
-        //        NFP childPart = NestingService.RotatePolygon(original, angle);
-        //        childPart.rotation = angle;
-        //        childPart.RotationConstraint = constraint;
-        //        childPart.source = original.source;
-        //        childPart.Id = original.Id;
-
-        //        placements.Add(childPart);
-        //        rotations.Add(angle);
-        //        constraints.Add(constraint);
-        //    }
-
-        //    return new PopulationItem(placements, rotations.ToArray(), constraints.ToArray());
-        //}
-
-        //private void Mutate(PopulationItem individual, double mutationRate)
-        //{
-        //    for (int i = 0; i < individual.placements.Count; i++)
-        //    {
-        //        if (_random.NextDouble() < mutationRate)
-        //        {
-        //            NFP part = individual.placements[i];
-        //            float newAngle = ChooseRandomLegalRotation(part, Config);
-
-        //            // Re-rotate with new legal angle
-        //            NFP mutated = NestingService.RotatePolygon(part, newAngle);
-        //            mutated.rotation = newAngle;
-        //            mutated.RotationConstraint = part.RotationConstraint;
-        //            mutated.source = part.source;
-        //            mutated.Id = part.Id;
-
-        //            individual.placements[i] = mutated;
-        //            individual.Rotation[i] = newAngle;
-        //            // RotationConstraints[i] stays the same (constraint doesn't change)
-        //        }
-        //    }
-        //}
-
-        //public PopulationItem GetBest() => Population.OrderBy(p => p.Fitness).FirstOrDefault();
-
-
         public PopulationItem Mutate(PopulationItem p)
         {
             PopulationItem clone = p.Clone();
 
             for (int i = 0; i < clone.Placements.Count(); i++)
             {
-                if (_random.NextDouble() < 0.01 * Config.MutationRate)
+                NFP part = clone.Placements[i];
+                if (_random.NextDouble() < 0.08 * Config.MutationRate)
                 {
                     int j = (i + 1) % clone.Placements.Count;
                     (clone.Placements[i], clone.Placements[j]) = (clone.Placements[j], clone.Placements[i]);
                 }
-                if (_random.NextDouble() < 0.01 * Config.MutationRate)
+                if (_random.NextDouble() < 0.99)
                 {
-                    float newAngle = ChooseRandomLegalRotation(clone.Placements[i]);
-                    NFP mutated = NestingService.RotatePolygon(clone.Placements[i], newAngle);
-                    mutated.Rotation = newAngle;
-                    mutated.RotationConstraint = clone.Placements[i].RotationConstraint;
-                    mutated.Source = clone.Placements[i].Source;
-                    mutated.Id = clone.Placements[i].Id;
-
-                    clone.Placements[i] = mutated;
-                    clone.Rotation[i] = newAngle;
+                    clone.Rotation[i] = ChooseRandomLegalRotation(part);
                 }
             }
             return clone;
+        }
+
+        private void RepairRotations(PopulationItem individual)
+        {
+            for (int i = 0; i < individual.Placements.Count; i++)
+            {
+                NFP part = individual.Placements[i];
+                if (part is null)
+                {
+                    continue;
+                }
+                if (part.AllowedAngles == null || part.AllowedAngles.Count == 0)
+                {
+                    part.AllowedAngles = RotationHelpers.GetAllowedRotation(part);
+                }
+
+                List<float> allowed = part.AllowedAngles;
+
+                // If current rotation is not allowed, replace it
+                if (!allowed.Contains(individual.Rotation[i]))
+                {
+                    individual.Rotation[i] = ChooseRandomLegalRotation(part);
+                }
+            }
         }
 
         // returns a random individual from the population, weighted to the front of the list (lower fitness value is more likely to be selected)
@@ -226,7 +149,8 @@ namespace DeepNestLib
 
             if (exclude != null && Array.IndexOf(pop, exclude) >= 0)
             {
-                pop.Splice(Array.IndexOf(pop, exclude), 1);
+                pop = pop.Where((x, idx) => idx != Array.IndexOf(pop, exclude)).ToArray();
+                //pop.Splice(Array.IndexOf(pop, exclude), 1);
             }
 
             double rand = _random.NextDouble();
@@ -256,11 +180,9 @@ namespace DeepNestLib
 
             List<NFP> gene1 = new List<NFP>(male.Placements.Take(cutpoint).ToArray());
             List<float> rot1 = new List<float>(male.Rotation.Take(cutpoint).ToArray());
-            List<RotationConstraint> con1 = new List<RotationConstraint>(male.RotationConstraints.Take(cutpoint));
 
             List<NFP> gene2 = new List<NFP>(female.Placements.Take(cutpoint).ToArray());
             List<float> rot2 = new List<float>(female.Rotation.Take(cutpoint).ToArray());
-            List<RotationConstraint> con2 = new List<RotationConstraint>(female.RotationConstraints.Take(cutpoint));
 
             int i = 0;
 
@@ -270,7 +192,6 @@ namespace DeepNestLib
                 {
                     gene1.Add(female.Placements[i]);
                     rot1.Add(female.Rotation[i]);
-                    con1.Add(female.RotationConstraints[i]);
                 }
             }
 
@@ -280,13 +201,15 @@ namespace DeepNestLib
                 {
                     gene2.Add(male.Placements[i]);
                     rot2.Add(male.Rotation[i]);
-                    con2.Add(male.RotationConstraints[i]);
                 }
             }
+            PopulationItem child1 = new PopulationItem { Placements = gene1, Rotation = rot1.ToArray() };
+            PopulationItem child2 = new PopulationItem { Placements = gene2, Rotation = rot2.ToArray() };
 
-            return new[] {new  PopulationItem() {
-                Placements= gene1, Rotation= rot1.ToArray(), RotationConstraints = con1.ToArray()},
-                new PopulationItem(){ Placements= gene2, Rotation= rot2.ToArray(), RotationConstraints = con2.ToArray()}};
+            RepairRotations(child1);
+            RepairRotations(child2);
+
+            return [child1, child2];
         }
 
         public void generation()
@@ -296,7 +219,7 @@ namespace DeepNestLib
 
             // fittest individual is preserved in the new generation (elitism)
             List<PopulationItem> newpopulation = new List<PopulationItem>();
-            newpopulation.Add(this.Population[0]);
+            newpopulation.Add(this.Population[0].Clone());
             while (newpopulation.Count() < this.Population.Count)
             {
                 PopulationItem male = RandomWeightedIndividual();
