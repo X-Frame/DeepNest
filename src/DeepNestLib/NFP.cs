@@ -177,5 +177,39 @@ namespace DeepNestLib
         {
             throw new NotImplementedException();
         }
+        // AI
+        public NFP Clone()
+        {
+            NFP clone = new NFP
+            {
+                id = this.id,
+                source = this.source,
+                Name = this.Name,
+                RotationConstraint = this.RotationConstraint,
+                rotation = this.rotation,
+
+                x = this.x,
+                y = this.y,
+                offsetx = this.offsetx,
+                offsety = this.offsety,
+
+                Points = this.Points?.Select(p => new SvgPoint(p.x, p.y) { exact = p.exact }).ToArray()
+            };
+
+            if (this.children != null && this.children.Count > 0)
+            {
+                clone.children = new List<NFP>(this.children.Count);
+                foreach (NFP child in this.children)
+                {
+                    clone.children.Add(child.Clone());
+                }
+            }
+
+            clone.sheet = this.sheet;
+
+            clone.isBin = this.isBin;
+
+            return clone;
+        }
     }
 }
