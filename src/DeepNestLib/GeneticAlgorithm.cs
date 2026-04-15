@@ -256,11 +256,9 @@ namespace DeepNestLib
 
             List<NFP> gene1 = new List<NFP>(male.Placements.Take(cutpoint).ToArray());
             List<float> rot1 = new List<float>(male.Rotation.Take(cutpoint).ToArray());
-            List<RotationConstraint> con1 = new List<RotationConstraint>(male.RotationConstraints.Take(cutpoint));
 
             List<NFP> gene2 = new List<NFP>(female.Placements.Take(cutpoint).ToArray());
             List<float> rot2 = new List<float>(female.Rotation.Take(cutpoint).ToArray());
-            List<RotationConstraint> con2 = new List<RotationConstraint>(female.RotationConstraints.Take(cutpoint));
 
             int i = 0;
 
@@ -270,7 +268,6 @@ namespace DeepNestLib
                 {
                     gene1.Add(female.Placements[i]);
                     rot1.Add(female.Rotation[i]);
-                    con1.Add(female.RotationConstraints[i]);
                 }
             }
 
@@ -280,13 +277,12 @@ namespace DeepNestLib
                 {
                     gene2.Add(male.Placements[i]);
                     rot2.Add(male.Rotation[i]);
-                    con2.Add(male.RotationConstraints[i]);
                 }
             }
 
             return new[] {new  PopulationItem() {
-                Placements= gene1, Rotation= rot1.ToArray(), RotationConstraints = con1.ToArray()},
-                new PopulationItem(){ Placements= gene2, Rotation= rot2.ToArray(), RotationConstraints = con2.ToArray()}};
+                Placements= gene1, Rotation= rot1.ToArray() },
+                new PopulationItem(){ Placements= gene2, Rotation= rot2.ToArray() } };
         }
 
         public void generation()

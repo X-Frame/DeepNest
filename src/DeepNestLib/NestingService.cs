@@ -453,27 +453,34 @@ namespace DeepNestLib
 
                     // inner NFP
                     NFP[] sheetNfp = null;
-                    bool canPlace = false;
 
                     List<float> allowedAngles = RotationHelpers.GetAllowedRotation(part);
 
                     foreach (float angle in allowedAngles)
                     {
+                        sheetNfp = GetInnerNfp(sheet, part, 0, config);
+                        if (sheetNfp != null && sheetNfp.Count() > 0)
+                        {
+                            if (sheetNfp[0].Length == 0)
+                            {
+                                throw new ArgumentException();
+                            }
+                            else
+                            {
+                                break;
+                            }
+                        }
+
                         NFP rotatedPart = RotatePolygon(part, angle);
-                        rotatedPart.Rotation = angle;
+                        rotatedPart.Rotation = part.Rotation + angle;
                         rotatedPart.Source = part.Source;
                         rotatedPart.Id = part.Id;
                         rotatedPart.RotationConstraint = part.RotationConstraint;
 
-                        sheetNfp = GetInnerNfp(sheet, rotatedPart, 0, config);
-                        if (sheetNfp != null && sheetNfp.Length > 0 && sheetNfp[0].Length > 0)
-                        {
-                            part = rotatedPart;           // Use this rotation
-                            parts[i] = rotatedPart;       // Update in the array
-                            break;
-                        }
+                        part = rotatedPart;           // Use this rotation
+                        parts[i] = rotatedPart;       // Update in the array
                     }
-                    if (!canPlace || sheetNfp == null || sheetNfp.Length == 0)
+                    if (sheetNfp == null || sheetNfp.Length == 0)
                     {
                         continue;
                     }
